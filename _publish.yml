@@ -1,0 +1,4 @@
+- source: project
+  quarto-pub:
+    - id: bd710b82-f876-44cb-b992-ed48991558d5
+      url: 'https://quartopub.com/sites/leo037/leos-blog'

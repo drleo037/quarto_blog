@@ -1,0 +1,20 @@
+---
+title: "About"
+image: surfs_up.jpg
+about:
+  template: jolla
+  links:
+    - icon: Mastodon
+      text: Mastodon
+      href: https://fosstodon.org/@drleo037
+    - icon: twitter
+      text: Twitter
+      href: https://twitter.com/DrLeo037
+    - icon: linkedin
+      text: LinkedIn
+      href: https://www.linkedin.com/in/leo-kiernan-2ba2561a0/
+---
+
+I've spent most of my life working in evidence-based decision support. Be it hands-on delivering solutions, running small teams or contributing as part of larger ones.
+
+This blog holds a collection of posts where I explore open data analysis. At the moment I write in R.

@@ -1,0 +1,847 @@
+---
+title: "Open data (part three): UK rivers dataset"
+author: "Leo Kiernan"
+date: "2023-02-20"
+image: OS uk rivers.png
+draft: false
+toc: true
+format: 
+  html:
+    code-fold: true
+categories: [code, analysis, opendata, OS]
+---
+
+# Overview
+
+Maps and networks have always fascinated me, which is why I'm excited to explore and manipulate a dataset on waterways in this post. This dataset is both *geospatial* ***and*** *topological* which makes it the basis for both a map and a network route-planner! In turn, this makes it very interesting to me, and complementary to the other *opendata* datasets I've already explored in this series:
+
+-   [Part 1](https://leo037.quarto.pub/leos-blog/posts/opendata%20thamesEDM/opendata%20thamesEDM.html) of this series explored an open data-set on [Event Discharge Monitors](https://www.thameswater.co.uk/about-us/performance/river-health) recently made accessible by *Thames Water*
+
+-   [Part 2](https://leo037.quarto.pub/leos-blog/posts/opendata_EA/opendata_EA.html) of this series explored data on English river levels and flows from the [UK Environment Agency](https://www.gov.uk/government/organisations/environment-agency).
+
+# Background
+
+The dataset I'm exploring here is the Open Rivers dataset for the UK published by the Ordnance Survey. The [Ordnance Survey](https://www.ordnancesurvey.co.uk/) is an organisation steeped in history stemming back to 1745. It began life supporting military strategy, but has grown into Britain's mapping agency. It has embraced **opendata** and publishes very good datasets (mainly geospatial) on all sorts of things. The OS open-river dataset will allow me to draw maps like the one shown below, and so much more.
+
+I hope you find this post interesting and useful.
+
+![The OS Open Rivers dataset enhanced to highlight river networks](OS%20uk%20rivers.png){fig-alt="A map showing UK rivers.  They have been grouped by river system, each system has been coloured differently.  Long rivers are more pronounced that short ones."}
+
+The geo-spatial and topological qualities of this dataset will help me navigate the rivers in a way akin to a route-planner, something I'll explore in this post, and really hope to exploit in subsequent posts.
+
+**Aside:** There is an entire ecosystem of GIS software out there to support drawing maps and geospatial analysis. Many are excellent and can be found by web-searches. In the FOSS[^1] world, QGIS is the GUI based GIS I use most. However... In this post I will be using [R](https://posit.co/) as it allows fully reproducible data processing and supports publication of the entire process in posts like this. I use a package called "[sf](https://r-spatial.github.io/sf/)" for geospatial processing, and subsequently a meta-package called "[sfnetworks](https://luukvdmeer.github.io/sfnetworks/)"[^2] throughout. When we're dealing with geospatial data there are a wide range of packages that help load, manipulate and visualise geospatial and network datasets. See this resource from [r-spatial.org](https://r-spatial.org/book/08-Plotting.html), this and many other brilliant resources are signposted in [the big book of R.](https://www.bigbookofr.com/)
+
+[^1]: FOSS = Free and Open Source Software
+
+[^2]: the {sfnetworks} package wraps together {sf} for geospatial processing *and* {igraph} for network analysis under a single framework.
+
+# Step 0: Prepare some Libraries
+
+First there's the obligatory step of loading the libraries that I'll be using throughout this post:
+
+```{r load the libraries used within this demo, output = FALSE, warning = FALSE }
+library(tidyverse)  # this blog uses the tidyverse
+library(lubridate)  # I'm sure lubridate has been added to the tidyverse, old habits die hard
+library(httr)       # we will use this to collect data from the internet
+library(sf)         # I'm going to plot some maps. sf helps with any spatial stuff
+library(leaflet)    # I like the interactivity of leaflet, but there are many other packages to plot maps.
+library(progress) # for feedback on progress during any long data downloads
+library(htmltools) # I'll use this to customise some tables in the code
+library(tidyjson) #  the edivalent of tidyr for json objects (returned from URLs)
+```
+
+# 
+
+# Step 1: Loading the OS rivers data
+
+## Collect the rivers data from Ordnance Survey
+
+I'm accessing river data from here: [OS Open Rivers - data.gov.uk](https://www.data.gov.uk/dataset/dc29160b-b163-4c6e-8817-f313229bcc23/os-open-rivers)[^3]. The OS provide this dataset in a number of formats. I have collected the dataset in [GeoPackage](https://www.geopackage.org/) format[^4] from [this URL](https://api.os.uk/downloads/v1/products/OpenRivers/downloads?area=GB&format=GeoPackage&redirect) and saved it before running the code in this post[^5].
+
+[^3]: At the time of writing, the licence information for the OS open rivers dataset is simply "\[\]" on edge & Safari.
+
+[^4]: GeoPackage is a widespread open format for geospatial information which has can be both read & (importantly) written using packages available in R, Python etc.
+
+[^5]: Note: Sorry, downloading it feels like an un-reproducible hack... I did try to automate this task based on the following stack-exchange conversation but failed. CURL'ing the URL does return a payload that looks roughly the right size, but it cannot be unzipped. I stopped pursuing this automation because I'm not regularly updating the dataset and I wanted to focus on exploring it! https://stackoverflow.com/questions/64850643/why-cant-i-get-st-read-to-open-a-shapefile-from-a-compressed-file-map-is-read
+
+Once downloaded[^6] We can have a quick look at the contents of the geo-database before loading it. We can see that the dataset has two layers (**hydro_node** and **watercourse_link**) ...
+
+[^6]: If you want to run this code, you will have to point the following code to wherever you've downloaded the data (sorry).
+
+```{r label: check the contents of the gpkg}
+library(sf)
+library(tidyverse)
+
+# note: I did try to automate this task based on
+# https://stackoverflow.com/questions/64850643/why-cant-i-get-st-read-to-open-a-shapefile-from-a-compressed-file-map-is-read
+
+sf::st_layers("C:/Users/leoki/DATA/OS/oprvrs_gpkg_gb/data/oprvrs_gb.gpkg")
+
+```
+
+It requires only one line of code to load each layer. As each layer is loaded we get a summary of its geo-spatial attributes (like what's the geometry type, the number of records, the Coordinate Reference Systems etc.).
+
+```{r label: load OS open-river dataset}
+library(sf)
+library(tidyverse)
+
+os_or_hydro_node <- sf::st_read("C:/Users/leoki/DATA/OS/oprvrs_gpkg_gb/data/oprvrs_gb.gpkg", layer = "HydroNode")
+
+os_or_watercourse_link <- sf::st_read("C:/Users/leoki/DATA/OS/oprvrs_gpkg_gb/data/oprvrs_gb.gpkg", layer = "WatercourseLink")
+
+
+```
+
+The summary tells us that:
+
+-   Both layers have geometries and hence can be added to maps. The geometry of **os_or_hydro_node** is *points* and that of **os_or_watercourse_link** is *lines*. Points and Lines are two of the fundamental building blocks of geospatial analysis and are often complemented by the third type; *polygons* (such as the water company boundaries I loaded in *part 2* of this series). I will load the water company boundaries again later in this post to compare against some things I'll generate en-route within this blog.
+
+-   **os_or_hydro_node**: The nodes are virtual way-points on the rivers. There are 194,325 nodes, each one has a unique identifier and some information on the nature of each section of the river (which we will soon see is only partially complete).
+
+    ```{r explore the OS open-river dataset nodes}
+    os_or_hydro_node %>%
+      # I dont need to convert to a tibble but it's faster if I do
+      as_tibble() %>%
+      count(hydroNodeCategory, sort = T)
+    ```
+
+-   **os_or_watercourse_link**: The links represent segments of the rivers themselves. There are 190,069 links, each one includes a range of information about the section of river. A sample of the links is shown below. Each of the 9 plots of the rivers in Great Britain is a field in the links dataset, only entries that are not blank are plotted on the maps. Notice that the watercourseNameAlternative is only sparsely populated. I will dig a bit deeper into the contents of each field in the next section.
+
+    ```{r explore the OS open-river dataset links}
+      os_or_watercourse_link %>%
+        # we dont need to plot all 190k lines
+        # to get a n idea of the content
+        # so I'll only plot 5k
+        sample_n(5000) %>%
+        plot()
+    ```
+
+## Exploring the OS open-rivers data
+
+It is good to spend time when first loading some data to get to know it. There are **lots** of packages out there that can help. [This blog from littlemissdata](https://www.littlemissdata.com/blog/simple-eda) contains a really good summary of some options. In this post I'll just have a quick "skim" of the links to get to know the dataset a bit better.
+
+```{r label: explore river links, size: small}
+
+skimr::skim(os_or_watercourse_link %>% as_tibble() %>% select(-geom))
+
+
+```
+
+The {*skimr*} output shows a few points of note:
+
+-   The *id* and *geom* columns are unique (there are as many distinct values as there are rows in the dataframe). These are "high cardinality". In this extreme case, the entries can be used as unique identifiers for each record.
+
+-   the *form* column contains a categorical classification for each node (see below). These are "low cardinality" (there's only a few alternatives). These kinds of fields are often categorical[^7].
+
+[^7]: In the wild these can be "free text" leading to an amazing variety of alternative spellings or capitalisation, this can be addressed by data cleansing or lumping the more exotic categories together as I showed on post 2.
+
+```{r label: check the form column, its low cardinality fields}
+os_or_watercourse_link %>%
+  as_tibble() %>%
+  count(form, sort = T)
+```
+
+-   The *watercourseName* column contains a categorical classification for each node. Attributes like this can be described as having "normal cardinality"[^8]:
+
+[^8]: "Normal cardinality is vaguely defined as somewhere between low and high cardinality). In the wild, the various entries might contain different ways of describing the same thing or typos, and data cleansing steps can be used to remove the ambiguities by reclassifying towards a less ambiguous classes. Regardless of the reasons for"normal cardinality" it's often useful to reduce the cardinality by lumping rare / exotic categorizations together using one of the extremely useful family of fct_lump\_\* functions from the forcats package.
+
+```{r label: check low cardinality fields}
+os_or_watercourse_link %>%
+  as_tibble() %>%
+  count(watercourseName, watercourseNameAlternative, sort = T)
+```
+
+It is a little worrying that there are many links that have not been assigned either a *name* or an *alternativeName*. (shown as "\<NA\>" in the table shown above). I will have to explore some more to understand what's going on here.
+
+## Diving deep into a single river (The Thames)
+
+When exploring a new dataset it can help to focus on a specific aspect or use-case. It can be especially helpful if one can relate to some aspect of the data. For that reason, I'll focus on the River Thames as I have lived close to this river all my life.
+
+```{r label: focussing on one river (the River Thames)}
+# even though I know I'm going to looko at the river Thames I'll make it a variable
+# it's a good habbit.
+# also,  I've explored other rivers before publishing and the use of a variable helped
+# as an exercise for the reader: what's odd about these two catchments: "yare", "waveney"
+target_river <- "river thames" 
+```
+
+The plot below shows that the River Thames (as selected using the name attribute) has a number of discontinuities, for example the River looks to stop and start again inside the red box.
+
+```{r label: plot (the River Thames)}
+
+  bbox_thames <-tribble(~lat, ~lon, 
+                        51.4, 0.1,
+                        51.55,0.35) %>% 
+    st_as_sf(coords = c("lon", "lat"), crs = 4326) %>% 
+    st_bbox() %>% 
+    st_as_sfc()
+  
+os_or_watercourse_link %>%
+  filter(str_detect(str_to_lower(watercourseName), target_river)
+         | str_detect(str_to_lower(watercourseNameAlternative), target_river)) %>%
+  ggplot() +
+  geom_sf(aes(colour = form)) +
+  geom_sf(data = bbox_thames,
+          colour = "red", alpha = 0.01, linewidth = 1) +
+  labs(title = paste0("OS water Courses filttered to thgose named: ", str_to_title(target_river)),
+       subtitle = paste0("Part of the river (boxed) is not labelled as: '", str_to_title(target_river), "'"))
+
+```
+
+This kind of exploratory Data Analysis (EDA) is probably best done in GIS software (e.g. QGIS), but this simple map allows exploration of *names* and *alternativeNames* of all water courses in that region. Hovering over the blue lines will show the parts of the Thames that do not appear in the previous plot are part of the dataset but have no names assigned whatsoever.
+
+```{r explore central London, warning=FALSE, message=FALSE}
+  
+os_or_watercourse_link %>%
+  mutate(namedRiverThames = ifelse(coalesce(str_detect(str_to_lower(watercourseName), target_river)
+         | str_detect(str_to_lower(watercourseNameAlternative), target_river), FALSE), "Thames", "Not Thames")) %>%
+  st_transform(crs = st_crs(4326)) %>%
+  st_filter(bbox_thames) %>%
+  mutate(geom = st_make_valid(geom)) %>%
+leaflet() %>%  
+  addTiles(group = "OSM (default)") %>%
+  addPolygons(data = bbox_thames) %>%
+  addPolylines(
+        group = ~namedRiverThames,
+    label = ~paste0(watercourseName, ' - ',
+                           watercourseNameAlternative)
+  ) %>% 
+  addLayersControl(
+      overlayGroups = c("Thames", "Not Thames"),
+    options = layersControlOptions(collapsed = FALSE)
+  )
+  
+
+```
+
+Not to worry! Later in this post we will see there are ways to handle these gaps and find our way from source to outlet of the River Thames regardless (assuming some other aspects of the dataset are good enough). To do this I will be exploring two other properties of the datasets
+
+-   The nodes have that *hydroNodeCategory* classification (source, outlet, junction etc.)
+
+-   The links have a *fromNode* and a *ToNode* which allow them to be connected. I'll be using the connectivity of the river sections to allow me to navigate along rivers like the Thames regardless of the sections being fully labelled.
+
+# Step 2: A Digital Twin of the river network?
+
+There's a lot of hype about *digital twins* at the moment, and I want to say that I'm creating one here. But before I do...
+
+## Just what *is* a digital twin?
+
+One definition is that digital twins are digital representations of an object or system that accurately reflects aspects of the system's behaviour. So what's the difference between a *digital twin* and what was once called a *simulation* or a *model*? A key characteristic is that a digital twin is associated (twinned) with an object that actually exists (a model / simulation can be of something that does not exist). It might be useful here to compare a flight-simulator against the internal models of a fly-by-wire aircraft. Both need to digitally represent the flight characteristics of an aircraft, but only one is linked to a *real* aircraft. Because *digital twins* always have a *real twin*, they have an extra requirement to represent some aspect of that object well enough to be used to generate insight about the *real* version. If the *real* object can have different states, then the *digital twin* will need to reflect those states, which in turn often requires information on the *real twin* to be gathered from sensors.
+
+## Am I really creating a *digital twin* here?
+
+My overall goal for this series of posts is to join the river data explored in this post (such as connectivity, length and paths taken) with the water that is in the river at any given time (such as level and flow data shared by the EA as explored in post 2) and what's being discharged into the rivers (such as storm surge data, from post 1).
+
+For the sake of drama I'll say yes, eventually I'll have created a digital twin of the river network. It will be limited in that it will know nothing about things like hydraulics or open-channel flows. It wont even know the gradient of the rivers nor their width or other pertinent details.
+
+For now though, **no** I wont call this a digital twin, I'll just call this a *map* of the UK rivers. However, I am heading in the right direction.... The next section will turn the *map* of the UK rivers into something closer to a *model* of UK rivers when I begin to consider how all the individual sections of rivers are joined together to create **river networks**.
+
+# Step 3: Rivers as Maps and Networks
+
+As described earlier, the OS open rivers dataset includes information on both the individual sections of rivers **and** how they connect together. This means that I can build a network (sometimes called a *graph*) from the river data... With this I can do more than just know where the rivers are... I can know where they are going, where they come from, and how they are interlinked into systems.
+
+I have used a fantastic R package called {[sfnetworks](https://luukvdmeer.github.io/sfnetworks/)} in this post. In turn, it uses {[sf](https://r-spatial.github.io/sf/)} for geospatial manipulation (for example; linking to other spatial datasets) and {[igraph](https://igraph.org/r/)} for network analysis (such as splitting the river network up into river systems or tracing along sections of rivers between points of interest).
+
+First I create *sfnetwork* object which has all these amazing capabilities:
+
+```{r creating a sfnetwork that can be explored }
+# 
+#| we're going up a gear... use sfnetworks to do both
+#| geospatial analysis (sf for geospatial manipulation)
+#|  like slipping and linking other spatial datasets)
+#| and network analysis (igraph for network type analysis)
+#|  like splitting the river network up into river systems
+#|  or tracing along sections of rivers from point to point
+library(sfnetworks)
+# create a sf network for the whole of the UK ----
+# (takes a few seconds on my laptoi)
+sfnet_rivers <- as_sfnetwork(os_or_watercourse_link)
+#| note: the package can create networks from the nodes and links.
+#| like this: (IF(F) so it DOES NOT RUN)
+if(F) {
+  # do not run! while this is how the documetation says to do it
+  # it gobbles up all my laptp memory
+  sfnet_rivers <- sfnetwork(nodes = os_or_hydro_node,
+                            edges = os_or_watercourse_link %>%
+                              rename(from = startNode, to = endNode),
+                            node_key = "id")
+}
+#| Including the nodes and the links will embue the sfnetwork
+#| with attributes of both the nodes and the links
+#| This is something 8 really want..
+#| HOWEVER,  for some reason this chews up all the memory
+#| on my laptop before crashing.
+```
+
+Then I make sure that all the attributes of the OS datasets are carried over (I use SQL-like joins but there are a surely many ways to implement this step)
+
+```{r augment the newly created sfnetwork with node attributes, warning=FALSE, message=FALSE}
+
+  #| ...then... adding some info back onto the nodes by:
+  #| get the original IDs for the nodes from the link start/ends
+  #| so that we can then link in the information from the os_or_hydro_node
+  sfnet_rivers <- sfnet_rivers %>%
+    # here
+    activate(links) %>%
+    # look up the hydroNodeCategory of the startNode
+    left_join(os_or_hydro_node %>% as_tibble() %>% as_tibble() %>% select(-geom) %>%
+                rename(startNode = id, start_cat = hydroNodeCategory)) %>%
+    # look up the hydroNodeCategory of the endNode
+    left_join(os_or_hydro_node %>% as_tibble() %>% as_tibble() %>% select(-geom) %>%
+                rename(endNode = id, end_cat = hydroNodeCategory)) %>%
+    # here
+    activate(nodes) %>%
+    # reunite the nodes with the startNode & endNode ids
+    # look up the startNode of links connected FROM it
+    mutate(id = row_number()) %>%
+    left_join(sfnet_rivers %>%
+                activate(links) %>%
+                as_tibble() %>%
+                transmute(id = from, startNode) %>% # FROM
+#                transmute(id = from, startNode, start_watercourse = coalesce(watercourseName, watercourseNameAlternative)) %>% # FROM
+                as_tibble() %>%
+                select(-geom) %>%
+                distinct()
+              ) %>%
+    # look up the end of links connected TO it
+    left_join(sfnet_rivers %>%
+                activate(links) %>%
+                as_tibble() %>%
+                transmute(id = to, endNode) %>% # TO
+                #                transmute(id = to, endNode, end_watercourse = coalesce(watercourseName, watercourseNameAlternative)) %>% # TO
+                as_tibble() %>%
+                select(-geom) %>%
+                distinct()
+              ) %>%
+    # both TO & FROM should hold the same chr ID
+    # sometimes one or the other will be blank (at the ends of the network)
+    # so lets collapse the IDs from either by coalescing
+    mutate(node_id = coalesce(startNode, endNode)) %>%
+    rename(startNodeFromLinks = startNode, endNodeFromLinks = endNode) %>%
+    left_join(os_or_hydro_node %>% as_tibble() %>% as_tibble() %>% select(-geom),
+              by = c("node_id" = "id"))
+
+```
+
+I can delete the original datasets as they're both absorbed into the new {sfnetworks} object I've called *sfnet_rivers*.
+
+```{r clean up some memory,  we dont need the sf objects any more }
+rm(list = c("os_or_hydro_node", "os_or_watercourse_link"))
+```
+
+# Step 4: Navigating Networks
+
+## Route finding: tracing a river from source(s) to outlet
+
+The OS data is now in a form that is both a map *and* a network. I can do some really useful next-level things like finding the shortest path between the objects[^9]. Let's try tracing the River Thames along its entire path. First I have to define where I want to start and end. In this example I want to find a route between the westernmost point on the River Thames to its outlet into the North Sea.
+
+[^9]: As well as finding the shortest path(s) between objects, the network can also find *all* possible paths . This is sometimes very useful.
+
+```{r define a start and end point somewhere on the Thames, warning=FALSE, message=FALSE}
+
+#| note: I'm going to find points on rivers more than once
+#| in this post, so in the spirit of DRY....
+#| I'll encapsulate the logic in a function
+#| INPUTS:
+#|   sfnetwork - the network to be searched
+#|   river_name - a river to filter on (case insensitive)
+#|   node_category - and hydroNodeCategory (case insensitive)
+#| RETURNS:
+#|   a dataframe containing the nodes matching the filters
+find_all_nodes <- function(sf_net, river_name, node_category){
+  if(!hasArg(river_name)) {
+    warning("find_all_nodes: river_name not defined (returning NULL)")
+    return(NULL)  
+  }
+  if(!hasArg(node_category)) {
+    warning("find_all_nodes: node_category not defined (returning NULL)")
+    return(NULL)  
+  }
+  # Step 1: filter nodes of the required type
+  river_nodes <- sf_net %>%
+    activate(nodes) %>%
+    mutate(id = row_number()) %>%
+    as_tibble() %>% as_tibble() %>%
+    filter(hydroNodeCategory == str_to_lower(node_category))
+  
+  # step 2: filter rivers to the target river_name
+  if(str_to_lower(node_category) == "source") {
+    river_nodes <- river_nodes %>%
+    inner_join(
+      sf_net %>%
+        activate(links) %>%
+        as_tibble() %>% as_tibble() %>%
+        filter(str_detect(str_to_lower(watercourseName),
+                          str_to_lower(river_name))
+             |
+               str_detect(str_to_lower(watercourseNameAlternative),
+                          str_to_lower(river_name))) %>%
+        select(node_id = startNode)
+    ) 
+  } else {
+    river_nodes <- river_nodes %>%
+      inner_join(
+        sf_net %>%
+          activate(links) %>%
+          as_tibble() %>% as_tibble() %>%
+          filter(str_detect(str_to_lower(watercourseName),
+                            str_to_lower(river_name))
+               |
+                 str_detect(str_to_lower(watercourseNameAlternative),
+                            str_to_lower(river_name))) %>%
+          select(node_id = endNode)
+      )
+    return(river_nodes)
+  }
+} #  end of find_all_nodes()
+
+# now we can get the outlet of the River Thames:
+river_outlet_node <- find_all_nodes(sf_net = sfnet_rivers,
+               river_name = "River Thames",
+               node_category = "outlet") %>%
+  # thre is only one outlet for the Thames,
+  # but if there were more, we might wantr to filter to
+  # only include the eastern-most node:
+  st_as_sf(crs = st_crs(27700)) %>%
+  mutate(lon = sf::st_coordinates(.)[,1],
+         lat = sf::st_coordinates(.)[,2]) %>%
+  #| then arrange the rows east -> west
+  #| (longitude is smallest in the west so this is descending)
+  arrange(desc(lon)) %>%
+  # select the (single) easternmost node
+  slice(1)
+
+# rivers in this dataset have a lot of sources
+westernmost_target_node <- find_all_nodes(sf_net = sfnet_rivers,
+               river_name = "River Thames",
+               node_category = "source") %>%
+  st_as_sf(crs = st_crs(27700)) %>%
+  mutate(lon = sf::st_coordinates(.)[,1],
+         lat = sf::st_coordinates(.)[,2]) %>%
+  #| then arrange the rows west -> east
+  #| (longitude is smallest in the west)
+  #| and somewhere later on, I'll pick the first (most westerly)
+  #| source.
+  #| I could have included all sources then in the route-planning
+  #| and then chosen the one that had the longest path
+  arrange(lon) %>%
+  # select the (single) westernmost node
+  slice(1)
+
+```
+
+Then we can trace from the start to the end, picking up all links inbetween. The route we're about to generate is similar to that taken by the three men and a dog in Jerome K. Jerome's book [Three Men In a Boat](https://en.wikipedia.org/wiki/Three_Men_in_a_Boat))
+
+```{r finding the path from start to finish of the Thames}
+# this just gets the path to the outlet
+paths_downstream_target <- st_network_paths(sfnet_rivers,
+                          from = westernmost_target_node$id,
+                          to = river_outlet_node$id,
+                          weights = "length") %>%
+  mutate(n_nodes = lengths(node_paths))
+
+# lets have a look at the path...
+
+sfnet_rivers %>%
+    activate("nodes") %>%
+  #| probably should use sfnetwork spatial morphers
+  #| https://luukvdmeer.github.io/sfnetworks/articles/sfn05_morphers.html
+    slice(unique(unlist(paths_downstream_target$node_paths))) %>%
+    activate(links) %>%
+    st_transform(crs = st_crs(4326)) %>%
+    mutate(geom = st_make_valid(geom)) %>%
+    st_as_sf() %>%
+    #    as_tibble() %>%
+    #    mutate(namesThames = coalesce(namesThames, "No")) %>%
+    leaflet() %>%  
+    addTiles(group = "OSM (default)") %>%
+    addProviderTiles(providers$Stamen.Terrain, group = "Terrain") %>%
+    addPolylines(
+      label = ~paste0(watercourseName, ' - ',
+                      watercourseNameAlternative)
+    ) %>% 
+    addLayersControl(
+      baseGroups = c("OSM (default)", "Terrain"),
+      options = layersControlOptions(collapsed = FALSE)
+    )
+```
+
+*Aside:* Remember how much trouble there was finding all the parts of the River Thames based on the *watercourseName* attribute because some of the river segments had not been labelled? The route-finding way has collected all the parts of the river between the source(s) and the outlet. If one wished, one could then apply some (carefully validated) domain rules to assert that all the links between should be called "River Thames" and cleans the *watercourseName* to be more complete, infilling those blanks with something more sensible. (I'm not going to do this here).
+
+## Remember rivers have a sense of direction...
+
+The river network is a "directed graph", in the sense that water flows *from* here *to* there. The *sfnet_rivers* object has all this information on direction and connectivity. This means that the rivers are like one-way-streets in a route-planner. By default the shortest paths algorithm will only go in the direction from-\>to. It's easy to ask it to look the other way (e.g. to find all tributaries of a river) but you have to explicitly ask it to search upstream.
+
+## Tracing upstream towards some points of interest
+
+In the example below I will find all routes *upstream* from the outlet of the Thames to *any* source of either the Thames or the River Kennet. The River Kennet is a tributary of the River Thames, joining at Reading. So first lets find the source(s) of both rivers.
+
+```{r getting all the "sources" of the Thames and Kennet, warning=FALSE, message=FALSE}
+
+source_thames_nodes <- find_all_nodes(sf_net = sfnet_rivers,
+               river_name = "River Thames",
+               node_category = "source") 
+source_kennet_nodes <- find_all_nodes(sf_net = sfnet_rivers,
+               river_name = "River Kennet",
+               node_category = "source")
+
+nrow(bind_rows(source_thames_nodes, source_kennet_nodes))
+
+```
+
+The function returned a total of 78 places marked as "source" on the Thames and the Kennet. I would have expected only one source per river, so have explored this a little. Having looked into this, it seems the OS open-rivers dataset classifies "source" as the part of a river that rejoins at the point where it runs through a lock and around a weir.
+
+Let's plot *all* the shortest paths between *all* the sources (on the Kennet and Thames) and the outlet of the Thames.
+
+```{r getr the paths upstream and plot them}
+# this just gets the path to the outlet
+paths_upstream_to_sources <- st_network_paths(
+                              sfnet_rivers,
+                             from = river_outlet_node$id,
+                             to = unique(c(source_thames_nodes$id,
+                                    source_kennet_nodes$id)),
+                             weights = "length",
+                             mode = "in") %>% #c("out", "all", "in")
+    mutate(n_nodes = lengths(node_paths))
+
+# lets have a look at the path...
+
+sfnet_rivers %>%
+    activate("nodes") %>%
+#    slice(unlist(kennet_paths$vpath)) %>%
+    slice(unique(unlist(paths_upstream_to_sources$node_paths))) %>%
+    activate(links) %>%
+    st_transform(crs = st_crs(4326)) %>%
+    mutate(geom = st_make_valid(geom)) %>%
+    st_as_sf() %>%
+    #    as_tibble() %>%
+    #    mutate(namesThames = coalesce(namesThames, "No")) %>%
+    leaflet() %>%  
+    addTiles(group = "OSM (default)") %>%
+    addProviderTiles(providers$Stamen.Terrain, group = "Terrain") %>%
+    addPolylines(
+      label = ~paste0(watercourseName, ' - ',
+                      watercourseNameAlternative)
+    ) %>% 
+    addLayersControl(
+      baseGroups = c("OSM (default)", "Terrain"),
+      options = layersControlOptions(collapsed = FALSE)
+    )
+```
+
+## Plotting rivers as a tree (dendrogram)
+
+Rivers and their tributaries resemble trees. While trees branch out, rivers connect together. I've generated a plot (below) simply to highlight how, what may once have appeared to be "just" a geospatial set of data that could be plotted on a map, is now very-much a network of interconnected elements. The plot below has limited the full rivers network to highlight *only* the branching nature of the sections of river on the Thames and the Kennet that feed into the sea at the mouth of the Thames.
+
+```{r show that the sfnetworks as a graph, warning=FALSE, message=FALSE}
+library(ggraph)
+library(igraph)
+
+thames_kennet_subgraph <- sfnet_rivers %>%
+  activate("nodes") %>%
+  slice(unique(unlist(paths_upstream_to_sources$node_paths))) %>%
+  activate(links) %>%
+  # if we wanted to simplifyto remove nodes that have only one incoming and one outgoing edge. 
+  # https://luukvdmeer.github.io/sfnetworks/articles/sfn02_preprocess_clean.html#smooth-pseudo-nodes
+  # tidygraph::convert(to_spatial_smooth) %>%
+  mutate(watercourseName = coalesce(watercourseName, "Not Defined")) %>%
+  mutate(watercourseName = as_factor(watercourseName)) %>%
+  mutate(watercourseName = fct_lump_n(watercourseName, 3)) %>%
+  as.igraph()
+
+  thames_kennet_subgraph %>%
+  ggraph() +
+#    ggraph(layout = "dendrogram") +
+  geom_node_point(size = 1) +
+  geom_edge_link(aes(colour = watercourseName), arrow = arrow(length = unit(2, 'mm'), ends = "last"),
+                 end_cap = circle(2, 'mm'),
+                 start_cap = circle(2, 'mm')) +
+    theme_graph() +
+    labs(title = "The OS open rivers dataset plotted as a tree",
+         subtitle = "All links traced on the rivers Thames and Kennet",
+         caption = "(First the OS data has been converted to a sfnetwork")
+    
+
+```
+
+Because the OS open-rivers dataset is now a graph, we can run graph-related statistics such as centrality and betweenness. This might feel academic, but such statistics may come in handy when characterising river networks that are, for example, more or less likely to suffer when polluted.
+
+# Step 5: Augmenting with 'systems of rivers'
+
+The OS open-rivers dataset is both a map *and* a network. It is possible to do some very useful processing and generate some beautiful summaries.
+
+For example, imagine we wanted to subdivide the whole of the UK into river 'systems'. Where each system is a set of rivers that are connected somehow. This would be easy to implement if we had a big map of all the rivers and a box of colouring pens... we could create the systems by printing out a black and white map of *all* the rivers, and then:
+
+**Repeat** the following:
+
+1.  take a new colouring pen from the box.
+
+2.  place the pen on a river on the map that hasn't yet been coloured.
+
+3.  trace all the sections of all the rivers that can be reached without taking the pen off of the paper.
+
+4.  put that pen to one side
+
+**Until** all rivers have been individually coloured.
+
+Once complete, we would have defined all sub-networks of the main OS open-rivers dataset. In graph-theory what we have done is to define the *components* (sub-graphs) of the river network. This is something that can be implemented in one line of code with the help of the {*igraph*} package.
+
+```{r add river systems (rg) to the sfnetwork, warning=FALSE, message=FALSE}
+# Step 1: calculate the components
+# mark each of the sub-graphs with a unique ID
+#| this ID is arbitrary but each river network has it's own ID
+rg <- igraph::components(sfnet_rivers)
+
+# Step 2: add the groups to the nodes
+sfnet_rivers_grouped <- sfnet_rivers %>%
+  # push the river group onto the nodes
+  activate("nodes") %>%
+  mutate(rg = as_factor(rg$membership)) %>%
+  group_by(rg) %>%
+  mutate(n_nodes = n()) %>%
+  ungroup()
+  
+
+# Step 3: add the groups (of the end_node) to the links
+sfnet_rivers_grouped <- sfnet_rivers_grouped %>%
+  activate(links) %>%
+  left_join(
+    sfnet_rivers_grouped %>%
+      activate(nodes) %>%
+      as_tibble() %>%
+      as_tibble() %>%
+      transmute(endNode = node_id, rg, n_nodes)
+  )
+
+# I dont need sfnet_rivers now.  if I deleted it here
+# it would save me from accidentally rewfereing to it later
+if(F) {
+  rm(list = "sfnet_rivers")
+}
+```
+
+## Deriving boundaries from systems of rivers
+
+Let's explore what has been generated by filtering the whole of the UK to the river system that contains the River Thames.
+
+*Aside:* The water company boundaries are loaded here (this is the same code as was used in part 2 to trim the EA stations to the Thames Water operational region):
+
+```{r load the water company boundaries, warning=FALSE, message=FALSE}
+
+#| Stack exchange once again makes it easy to make reproducible code
+#| https://stackoverflow.com/questions/64850643/why-cant-i-get-st-read-to-open-a-shapefile-from-a-compressed-file-map-is-read
+
+read_shape_URL <- function(URL){
+  cur_tempfile <- tempfile()
+  download.file(url = URL, destfile = cur_tempfile)
+  out_directory <- tempfile()
+  unzip(cur_tempfile, exdir = out_directory)
+  
+  sf::read_sf(dsn = out_directory) #read_sf also works here st_read
+}
+wc_bundaries_sf <- read_shape_URL("https://data.parliament.uk/resources/constituencystatistics/water/SewerageServicesAreas_incNAVsv1_4.zip") %>%
+  rename(geom = geometry) %>%
+  # we don't need the full resolution here, save a few Mb
+  # by simplifying to a tolerance of 10 meters because we're in CRS 27700
+  st_simplify(dTolerance = 10)
+```
+
+Now let's compare the operational boundary of Thames Water with another boundary that has been solely defined by the perimeter of the system of rivers running into the sea at the mouth of the River Thames.
+
+```{r build the river groups}
+# step 1: See which RG the river_outlet_node is part of...
+# (we created this my selecting the outlet of the Thames)
+this_rg <- sfnet_rivers_grouped %>%
+  activate("nodes") %>%
+  filter(node_id == river_outlet_node$node_id) %>%
+  as_tibble() %>%
+  select(rg) %>%
+  as_tibble() %>%
+  select(-geom) %>%
+  head(1) %>%
+  as.integer()
+  
+# Step 2: Extract all the rivers that are part of
+# the river system that includes th river Thames
+ sfnet_rivers_thames_basin <- sfnet_rivers_grouped %>%
+    activate(links) %>%
+    filter(rg == this_rg) %>%
+    activate(nodes) %>%
+    filter(!tidygraph::node_is_isolated()) %>%
+    # the row number is out of date now (maybe drop entirely?)
+    # it needs refreshing (or ignoring entirely!)
+    mutate(id = row_number())
+ 
+# Step 3: Create a concave boundary for these rivers
+concave_rivers_boundary_sf <- sfnet_rivers_thames_basin %>%
+  activate(nodes) %>%
+  st_as_sf() %>%
+  summarise() %>% 
+  concaveman::concaveman() %>%
+  st_zm()
+
+#Step 4: plot them all on top of eachother
+
+#| https://community.rstudio.com/t/adding-manual-legend-to-ggplot2/41651/3
+#| to label the layers
+colors <- c("Thames tributaries" = "darkgrey",
+            "TW Region" = "green",
+            "Concave Rivers boundary" = "blue"
+)
+  
+ggplot() +
+    geom_sf(data = wc_bundaries_sf %>% filter(COMPANY == "Thames Water"), aes(colour = "TW Region", fill = "TW Region"), alpha = 0.1) +
+    geom_sf(data = concave_rivers_boundary_sf, aes(colour = "Concave Rivers boundary", fill =  "Concave Rivers boundary"), alpha = 0.1) +
+    geom_sf(data = sfnet_rivers_thames_basin %>% activate(links) %>% st_as_sf(), aes(colour = "Thames tributaries"), alpha = 0.5) +
+    labs(title = "Map of Thames Water's boundary\n and the boundary of the systems of rivers including the River Thames",
+         x = "long",
+         y = "lat") +
+    scale_color_manual(values = colors)
+
+```
+
+The two areas look very similar but the Thames Water region is larger than that defined by the system of rivers. I've explored the area on the north-east of the disjoin between the Thames Water boundary and the concave boundary of the system of rivers including the River Thames. The reason for the north-east disparity is because there are short sections of the River Lea (alt name River Lee) that are not connected in the OS Open Rivers dataset (**zoom right in to the red square in the map below to see the place where the rivers are disconnected**). This disjoin may be deliberate, or it maybe an error in the dataset. If I were to chose the latter then I could do fixing-up of the OS dataset to join links that are (say) within some tolerance.
+
+```{r why isnt much of the river Lee in our river system}
+
+
+bbox_edge <- tribble(~lat, ~lon, 
+                    51.575, -0.075,
+                    51.6, -0.025) %>% 
+              st_as_sf(coords = c("lon", "lat"), crs = 4326) %>% 
+              st_bbox() %>% 
+              st_as_sfc()
+  
+bbox_zoom <-tribble(~lat, ~lon, 
+                    51.5875, -0.0525,
+                    51.5890, -0.05) %>% 
+              st_as_sf(coords = c("lon", "lat"), crs = 4326) %>% 
+              st_bbox() %>% 
+              st_as_sfc()
+
+
+sfnet_rivers_grouped %>%
+  activate(links) %>%
+  st_as_sf() %>%
+  mutate(namedRiverThames = ifelse(rg == this_rg, "Thames System", "Not Thames System")) %>%
+  st_transform(crs = st_crs(4326)) %>%
+  st_filter(bbox_edge) %>%
+  mutate(geom = st_make_valid(geom)) %>%
+leaflet() %>%  
+  addTiles(group = "OSM (default)") %>%
+  addPolygons(data = bbox_edge) %>%
+  addPolygons(data = bbox_zoom, color = "red") %>%
+  addPolylines(
+        group = ~namedRiverThames,
+    label = ~paste0(watercourseName, ' - ',
+                           watercourseNameAlternative)
+  ) %>%
+  addLayersControl(
+      overlayGroups = c("Thames System", "Not Thames System"),
+    options = layersControlOptions(collapsed = FALSE)
+  )
+```
+
+## Pretty maps of river systems
+
+The logic outlined above to hand-draw the map of systems of rivers is precisely the logic I used when generating the colourful map at the very top of this post.
+
+Each river system is plotted in it's own colour. For aesthetic purposes, I have also made the lines more pronounced if the rivers are long, and less pronounced if the rivers are short.
+
+The code which generated this plot is in the following section. The code below first cookie-cuts (filters) the whole of the UK so as to only include river systems that fall within the borders of the Thames Water operational area.
+
+```{r colourful plot of river systems in the thames water boundary, warning=FALSE, message=FALSE}
+
+# this code was used to generate and save the image.
+# in this blog I'm just loading the resultant image.
+# Note: I'm using ggplot to render the map however, 
+# the ggplot rendering takes a long time.
+# there are faster ways but I;ve not included them here
+# as they're somewhat off-topic
+
+# draw the map 
+tw_p <- sfnet_rivers_grouped %>%
+  activate(links) %>%
+  st_as_sf() %>%
+  # limit to those river in the Thames boundaries
+  st_filter(wc_bundaries_sf %>%
+    filter(str_detect(COMPANY, "Thames")) %>%
+    st_simplify(dTolerance = 100)) %>%
+  # calculate the length of entire river (as I want to emphasis *all* links on longer rivers)
+  group_by(watercourseName) %>%
+  mutate(river_length = sum(length)) %>%
+  ungroup() %>%
+  mutate(all_length = sum(length)) %>%
+  mutate(norm_length = river_length / all_length) %>%
+  mutate(norm_length = ifelse(is.na(watercourseName), 0.01, norm_length)) %>%
+  select(watercourseName, rg, length, river_length, norm_length, all_length) %>%
+  ggplot() +
+    geom_sf(aes(colour = rg, alpha = norm_length)) +
+    hrbrthemes::theme_ft_rc(grid = F,axis_text_size = F) +
+    theme(legend.position = "none") +
+    labs(
+      # title = "Thames Water",
+      subtitle = glue::glue("The river network within the Thames Water boundary"),
+      # x = "", y = "",
+      caption = "Rivers: https://www.data.gov.uk/\nBoundary: https://data.parliament.uk/"
+    ) 
+# render using ggplot to the screen (ok for TW, but slow for UK)
+tw_p
+```
+
+Until I generated these plots, I'd never really seen the rivers of the UK in quite this way. There's something very aesthetically pleasing about how they branch. I have found it really interesting that there are parts of the UK that have virtually no surface rivers whatsoever.
+
+## Data checkpoint
+
+It feels like we've done a lot to augment the original OS open-rivers datasets, so perhaps it's a good time to save this augmented dataset as a new gpkg with the extra information on the river groups. It might be that this was *all* we wanted to use R for and
+
+-   The rest of the analysis would be done inside QGIS.
+
+-   The augmented dataset is of value to other analysis and the checkpoint is a great place from which to share it.
+
+```{r write a sfnetworks object out to a gpkg }
+
+# heres a function I have written to sage a sfnetwork
+# into a geopackage so it can be loaded into something like QGIS
+# remember: This might be a single object, but it holds
+# two layers
+# nodes (points)
+# links (lines)
+# each with their own set of attributes
+save_sf_network_as_geopkg <- function(this_sfnet, target_gpkg) {
+  message(paste0("Exporting sf_network links to: ", target_gpkg))
+  this_sfnet %>%
+    activate(links) %>%
+    st_as_sf() %>%
+    st_write(dsn = target_gpkg, layer= "links", append=FALSE)
+  
+  message(paste0("Exporting sf_network nodes to: ", target_gpkg))
+  this_sfnet %>%
+    activate(nodes) %>%
+    st_as_sf() %>%
+    st_write(dsn = target_gpkg, layer= "nodes", append=FALSE)
+  message("done")
+}
+
+# example of how to call the function
+
+if(F) {
+  sfnet_rivers_grouped %>% save_sf_network_as_geopkg("C:/Users/leoki/DATA/LAK/os_river.gpkg")
+}
+```
+
+# Summary
+
+To summarise, in this post:
+
+-   I have explored a geospatial open dataset provided by the Ordnance Survey. The dataset is great, but has the usual limitation and caveats, especially around completeness of the names of river segments. The coordinates of the river segments look great and will no doubt, come in handy if one were to join this data spatially to other datasets.
+
+-   I have use the connectivity defined in the dataset to build a topological (graph / network) representation of the rivers. This allows virtual navigation around the rivers.
+
+-   I have used the topological rivers to route-find along rivers and to group rivers in to river systems. As with the geospatial attributes, the logical connectivity will be useful in subsequent analysis.
+
+# Where next?
+
+As per previous posts... It's over to you if you wish to continue exploration of the data and find ways to visualize, summarize and generate insight. *The OS open-rivers* open data-set is downloadable and can be manipulated quite simply using the great FOSS toolkits. I hope this post has been interesting. I look forward to other people's apps, posts and summaries of this valuable open data-set.
+
+Personally, I will continue to explore this data, creating visuals and joining it to other open data-sets, but that is for another post...

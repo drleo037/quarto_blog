@@ -1,0 +1,334 @@
+---
+title: "Open data (part one): Event Discharge Monitor data from Thames Water"
+author: "Leo Kiernan"
+date: "2023-01-30"
+image: opensource-EDM-map.png
+toc: true
+format: 
+  html:
+    code-fold: true
+categories: [code, analysis]
+---
+
+# Overview
+
+This blog explores *open-data*. Specifically, a recently published open data-set from *Thames Water* on [Event Discharge Monitors](https://www.thameswater.co.uk/about-us/performance/river-health) (EDM).
+
+**Spoiler Alert:** This blog is **only** here to highlight the existence of the new *open-data* service and as a 'hello world' example for getting started using R. I set myself the goal of emulating the [map of EDM data published by Thames Water](https://www.thameswater.co.uk/edm-map) but using the open data API and open-source tools. If you just want to see the final map, then jump to @sec-emulation-of-the-online-emd-map. If you want to see how I did it, read on...
+
+# Background
+
+The UK water industry has recently embarked on an *open-data* initiative. *Thames Water* has created a portal [Thames Water Open Data Portal](https://data.thameswater.co.uk/) through which it can publish it's *open-data* using RESTful APIs. The first such API publishes data on Event Discharge Monitors (EDMs). These sensors are placed at the outlet of sewage treatment works and register when untreated sewage is being discharged into the environment. For more information, see the page on [river health](https://www.thameswater.co.uk/about-us/performance/river-health) that includes detail on the background of EDMs and the data-set that *Thames Water* has made available. Because of it's impact on nature and potentially humans, this data has been available on request for some time. Thames has taken steps to allow this data to be more easily accessed in two ways:
+
+-   An [interactive map](https://www.thameswater.co.uk/edm-map) visualizing storm discharge (EDM) data
+
+-   An open API (the subject of this blog) from which the public can collect the underlying data as *open-data*. The terms of service are available on [the portal](https://www.thameswater.co.uk/about-us/performance/river-health/storm-discharge-data).
+
+# Preparation: Registering with the API
+
+The API is open and free, however it does require two preparatory steps:
+
+1.  Registration:
+
+    Registration allows *Thames Water* to communicate with consumers of their open-data about the service. For instance, in the last week (since I've been exploring this dataset), I have received notification that the service was under maintenance and may appear stale for a short while, and another when the normal service was resumed. You can [register for an API here](https://data.thameswater.co.uk/s/apis), then get credentials from [here](https://data.thameswater.co.uk/s/application-listing).
+
+2.  Creation of an API key
+
+    The API key(s) are used to authenticate against the service, they are akin to login id(s).
+
+# Code
+
+## Step 0: Load some libraries
+
+First there's the obligatory step of loading the libraries I'll be using throughout this post:
+
+```{r load the libraries used within this demo, output = FALSE, warning = FALSE }
+library(tidyverse)  # this blog uses the tidyverse
+library(lubridate)  # I'm sure lubridate has been added to the tidyverse, old habits die hard
+library(httr)       # we will use this to collect data from the internet
+library(sf)         # I'm going to plot some maps. sf helps with any spatial stuff
+library(leaflet)    # I like the interactivity of leaflet, but there are many other packages to plot maps.
+```
+
+## Step 1: Collect the data from the API
+
+To help new users get started, *Thames Water* has also provided code snippets in a variety of languages on how to connect to the API and collect data. I've use the #rstats snippet to collect some data (JSON) and convert it into a data-frame as shown below:
+
+```{r collect data from the Thames API}
+# start by gathering sensor data from Thames Water for the Thames
+
+#| you can create and retrieve API tokes from here: https://data.thameswater.co.uk/s/application-listing
+#| I like to use keyring:: to keep secrets away from version control
+#| So in an unpublished bit of code I have already pushed the secrets as follows:
+#| keyring::key_set_with_value(service = "thames_api", username = "CLIENT_ID", password = "<MY ID>")
+#| keyring::key_set_with_value(service = "thames_api", username = "CLIENT_SECRET", password = "<MY PW>")
+
+CLIENT_ID <- keyring::key_get(service = "thames_api", "CLIENT_ID")
+CLIENT_SECRET <- keyring::key_get(service = "thames_api", "CLIENT_SECRET")
+#| modify this URL as desired to access the different end points.
+URL <- "https://prod-tw-opendata-app.uk-e1.cloudhub.io/data/STE/v1/DischargeCurrentStatus"
+#| add here any query parameters if using them e.g. date filters, leave as '' for none.
+PARAMS <- ""
+
+#| send the request
+res <- httr::GET(url = URL, 
+                 httr::add_headers(client_id = CLIENT_ID, client_secret = CLIENT_SECRET),
+                 query = PARAMS)
+
+#| check status and return only valid requests
+if (httr::status_code(res) != 200){
+  warning(paste("Request failed with status code: ", httr::status_code(res)))
+} else {
+  #| parse the response
+  content <- httr::content(res)
+  
+  #| extract the edm_raw
+  
+  #| and return
+  edm_raw <- dplyr::bind_rows(content$items)
+}
+#| it's worth remembering when we collected the data as it could change each time we collect it:
+data_collection_dt <- Sys.time()
+```
+
+## Step 2: Create the data you want to see in the world
+
+The data we have received from the API only has three categories:
+
+```{r}
+edm_raw %>%
+  count(AlertStatus, sort = T)
+```
+
+However, the interactive map categorizes EDMs into:
+
+-   Off-line
+
+-   Discharging
+
+-   and subdivides those 'Not discharging' into
+
+    -   ones that have discharged in the past 48 hours
+
+    -   those that have not discharged in the past 48 hours
+
+If I'm to reproduce the interactive map, I will need to create a sub-category of "Not discharging" that replicates the extra categories. I could overwrite the AlertStatus field, but for clarity, I'll create a new field called 'display_status' to hold the refined categories. While we're processing the raw data we will also tidy up a few things as annotated in the code below:
+
+```{r create the data tyou want to see in the world}
+
+edm_df <- edm_raw %>%
+  # make the column names standard
+  janitor::clean_names() %>% 
+  # geo-reference x & y (they are in eastings & northings so the crs starts as 27700)
+  st_as_sf(coords = c("x", "y"), crs = 27700) %>%
+  # my naming convention: geometries are called 'geom'
+  rename(geom = geometry) %>%
+  # because I'm using leaflet,  I convert from E&N to lat-long (crs -> 4326)
+  sf::st_transform(crs = sf::st_crs(4326)) %>%
+  # convert datetimes from chr to a more useful & natural type
+  mutate(status_change = lubridate::as_datetime(status_change)) %>%
+  mutate(most_recent_discharge_alert_start = lubridate::as_datetime(most_recent_discharge_alert_start)) %>%
+  mutate(most_recent_discharge_alert_stop = lubridate::as_datetime(most_recent_discharge_alert_stop)) %>%
+  # now augment the data-set with the useful new stuff...
+  mutate(time_since_last_discharge = difftime(data_collection_dt, most_recent_discharge_alert_stop, units = "days")) %>%
+  mutate(discharge_duration = difftime(coalesce(most_recent_discharge_alert_stop, data_collection_dt),  most_recent_discharge_alert_start, units = "days")) %>%
+  mutate(display_status = case_when(
+    (alert_status == 'Not discharging') & (time_since_last_discharge <= days(2)) ~ 'Discharge recorded in the last 48 hours',
+    TRUE ~ alert_status
+    )
+  ) %>%
+  # finally, it's a good habit to have a unique ID,  so I tend to add one (location_name looks to be, but...)
+  mutate(edm_id = row_number(), .before = 1)
+```
+
+## Step 3: Emulation of the online EDM map {#sec-emulation-of-the-online-emd-map}
+
+Here's the code I've used to generate my version of [Thames Water's EDM Map](https://www.thameswater.co.uk/edm-map) (why not open both side-by-side and compare). There's plenty of googling and stack-exchange behind this code.
+
+```{r Emulation of the Thames interactive map for EDM stations}
+
+# this helper function will be useful when I define the content of labels that are diplayed
+# when the mouse hovers on a monitor in the leaflet map 
+asHTML <- function(text){
+  attr(text, "html") <- TRUE
+  class(text) <- c("html", "character")
+  return(text)
+}
+
+# I'm going to have one layer for each distinct "state" of EDMs
+# off
+# dis(charging)
+# not(discharging)
+# recent(ly) discharging
+#
+offIcon <- awesomeIcons(
+  icon = 'ios-close',
+  iconColor = 'black',
+  library = 'ion',
+  markerColor = "lightgray"
+)
+
+disIcon <- awesomeIcons(
+  icon = 'ios-close',
+  iconColor = 'black',
+  library = 'ion',
+  markerColor = "red"
+)
+
+recentIcon <- awesomeIcons(
+  icon = 'ios-close',
+  iconColor = 'black',
+  library = 'ion',
+  markerColor = "orange"
+)
+
+notIcon <- awesomeIcons(
+  icon = 'ios-close',
+  iconColor = 'black',
+  library = 'ion',
+  markerColor = "darkgreen"
+)
+
+# to add a title to a leaflet map: https://stackoverflow.com/questions/49072510/r-add-title-to-leaflet-map
+# I'm not sure hwy,  but this doesnt seem to render properly when this is published
+# but it works in perview so I'm leaving the log inplace
+ library(htmltools)
+tag.map.title <- tags$style(HTML("
+  .leaflet-control.map-title { 
+    transform: translate(-50%,20%);
+    position: fixed !important;
+    left: 50%;
+    text-align: center;
+    padding-left: 10px; 
+    padding-right: 10px; 
+    background: rgba(255,255,255,0.75);
+    font-weight: bold;
+    color: black;
+    font-size: 14px;
+  }
+"))
+
+title <- tags$div(
+  tag.map.title, HTML(paste0("Emulation of Thames Water EDM map.<br>Data collected: ", data_collection_dt))
+)  
+
+# I like to create a base-map then add layers (you don't have to break the steps)
+base_map <- leaflet() %>%
+  #| Base groups
+  addTiles(group = "OSM (default)") %>%
+  addProviderTiles(providers$Stamen.Terrain, group = "Terrain") %>%
+  addProviderTiles(providers$Stamen.TonerLite, group = "Toner Lite") %>%
+  addControl(title, position = "topleft", className="map-title")
+
+# now add layers to the basemap,  one for each state for the monitors
+base_map %>%
+  addAwesomeMarkers(data = edm_df %>%
+                      filter(display_status == "Offline"),
+  #|                  clusterOptions = markerClusterOptions(),
+                    label = ~asHTML(paste0('Name: ', location_name, '<br>',
+                                            'Watercourse: ', receiving_water_course, '<br>',
+                                            'DateTime: ', data_collection_dt, '<br>',
+                                            'Staus: ', alert_status)),
+                    icon = offIcon,
+                    clusterId = "Offline EDM",
+                    group = "Offline EDM"
+  ) %>%
+  addAwesomeMarkers(data = edm_df %>%
+                      filter(display_status == "Discharging"),
+ #|                   clusterOptions = markerClusterOptions(),
+                    label = ~asHTML(paste0('Name: ', location_name, '<br>',
+                                            'Watercourse: ', receiving_water_course, '<br>',
+                                            'DateTime: ', data_collection_dt, '<br>',
+                                            'Staus: ', alert_status)),
+                    icon = disIcon,
+                    clusterId = "Discharging EDM",
+                    group = "Discharging EDM"
+  ) %>%
+    addAwesomeMarkers(data = edm_df %>%
+                        filter(display_status == "Not discharging"),
+                      #|                    clusterOptions = markerClusterOptions(),
+                      label = ~asHTML(paste0('Name: ', location_name, '<br>',
+                                            'Watercourse: ', receiving_water_course, '<br>',
+                                            'DateTime: ', data_collection_dt, '<br>',
+                                            'Staus: ', alert_status)),
+                      icon = notIcon,
+                      clusterId = "Not discharging EDM",
+                      group = "Not discharging EDM"
+    ) %>%
+    addAwesomeMarkers(data = edm_df %>%
+                        filter(display_status == "Discharge recorded in the last 48 hours"),
+                      #|                    clusterOptions = markerClusterOptions(),
+                      label = ~asHTML(paste0('Name: ', location_name, '<br>',
+                                            'Watercourse: ', receiving_water_course, '<br>',
+                                            'DateTime: ', data_collection_dt, '<br>',
+                                            'Staus: ', alert_status)),
+                      icon = recentIcon,
+                      clusterId = "Recent Discharge EDM",
+                      group = "Recent Discharge EDM"
+    ) %>%
+    addLayersControl(
+    baseGroups = c("OSM (default)", "Terrain", "Toner Lite"),
+    overlayGroups = c("Discharging EDM", "Not discharging EDM", "Recent Discharge EDM", "Offline EDM"),
+    options = layersControlOptions(collapsed = FALSE))
+```
+
+**Note:** The above map displays data from whenever this blog was last refreshed, so the EDM states will vary from those on the live interactive map. It's very easy to create apps that pull data at some interval or when a button is pressed. In R I would use use [shiny](https://shiny.rstudio.com/), but there are equivalent frameworks in Python, Javascript etc.
+
+# Play!
+
+## Enabling exploration
+
+The DT:: package is great for exploration of tabular data. It allows search, filter and sort. Have a play. Try filtering the table to only show 'River Wandle' as the receiving_water_course, and the sort by status_change to see the locations that have changed state most recently.
+
+```{r searchable table of EMD data}
+
+exploratoryDT <- edm_df %>%
+  as_tibble() %>%
+  select(-c(edm_id, location_grid_ref, geom)) %>%
+  DT::datatable(filter = 'top')
+
+# I want to make the table smaller than the default size so more fits on a page
+# https://stackoverflow.com/questions/31921238/shrink-dtdatatableoutput-size
+div(exploratoryDT, style = "font-size: 75%")
+```
+
+## Something different...
+
+The value of *open-data* is that it empowers exploration and innovation. If you have access to the data, then you can begin to create new insights. Here's a plot of all events that have run for more than (arbitrarily) 3 days. I've grouped them by water course to explore which water courses appear to be most affected by discharges.
+
+```{r visualise the EDM data... worst performing sites}
+
+#| simple EDA of the Thames EDM data-set ----
+p <- edm_df %>%
+  group_by(receiving_water_course) %>%
+  filter(max(discharge_duration) > days(3)) %>%
+  ggplot() +
+  geom_boxplot(aes(fct_reorder(receiving_water_course, as.numeric(discharge_duration)),
+                   discharge_duration,
+                   fill = receiving_water_course)) +
+  coord_flip() + 
+  theme(legend.position="none") +
+  labs(title = "Water Courses that have had events lasting more than 3 days",
+       subtitle = paste0("Data collected: ", data_collection_dt),
+       y = "discharge duration (days)",
+       x = "water course name",
+       caption  = "Data from Thames Water's open API: https://data.thameswater.co.uk/s/apis")
+
+p
+#| plotly is good for interactive ggplots:
+#|  plotly::ggplotly(p)
+```
+
+**Note:** Care must be taken when inferring anything from data-sets, especially unfamiliar ones. Some reasons why the plot might be misleading:
+
+-   Are all watercourses equally instrumented? or could we be plotting those with measurements on outlets?
+
+-   What about those instruments that are offline? could our view of the world be biased without considering those off-line, especially if (say) sensors are more likely t go off-line after exposure to discharged media.
+
+-   Are all discharges equal? This data-set does not contain information on the volume or content of discharges, neither is there any information available in this data-set about the size of the watercourse into which the waste is being discharged.
+
+# Where next?
+
+It's over to you to continue exploration of the data and ways to visualize, summarize and generate insight. *Thames Water* have taken a very progressive step by creating the API and making this data available. I hope this post has been interesting. I look forward to other people's apps / posts / summaries of this valuable open data-set.
+
+Personally, I will be continuing to explore this data and joining it to other open data-sets, but that is for another post...
