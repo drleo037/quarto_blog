@@ -37,3 +37,10 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+
+
+# dont include these or diffs become horrendous
+# https://quarto.org/docs/publishing/github-pages.html
+/.quarto/
+/_site/
+/_freeze/
