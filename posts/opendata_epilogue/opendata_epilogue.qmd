@@ -1,0 +1,209 @@
+---
+title: "Open data (epilogue): Some lessons learned"
+author: "Leo Kiernan"
+date: "2023-02-20"
+image: OS uk rivers.png
+draft: false
+toc: true
+format: 
+  html:
+    code-fold: true
+categories: [code, analysis, opendata, OS]
+---
+
+# Overview
+
+I'm drawing to a close this set of posts on #OpenData. Thus far I've published 4 posts:
+
+-   [Part 1](https://leo037.quarto.pub/leos-blog/posts/opendata%20thamesEDM/opendata%20thamesEDM.html) of the series explored an open data-set on [Event Discharge Monitors](https://www.thameswater.co.uk/about-us/performance/river-health) (EDMs) recently made accessible by *Thames Water.*
+
+-   [Part 2](https://leo037.quarto.pub/leos-blog/posts/opendata_EA/opendata_EA.html) of the series explored data on English river levels and flows from the [UK Environment Agency](https://www.gov.uk/government/organisations/environment-agency) (EA)
+
+-   [Part 3](https://leo037.quarto.pub/leos-blog/posts/opendata_UK_rivers/opendata_UK_rivers.html) of the series explored the rivers themselves made available from: [OS Open Rivers - data.gov.uk](https://www.data.gov.uk/dataset/dc29160b-b163-4c6e-8817-f313229bcc23/os-open-rivers).
+
+-   [Part 4](https://leo037.quarto.pub/leos-blog/posts/rivers_edms_levels/exploration_of_rivers_and_discharges.html) described how I pulled together all three #OpenData sets into an online application ([you can use the application by clicking here](https://drleo037.shinyapps.io/openRivers/)). The app allowed the user to check *any* point on *any* river, the app would then highlight any EDMs that were discharging sewage upstream from that point on the river. The app also visualised the EDM discharges (published by Thames Water) in the context of river loadings (as evidence from the EA #OpenData API).
+
+# Ramblings on
+
+Throughout these posts I've only done minimal work to check and cleanse the data. There's a long list of questions that arose as I loaded and processed the datasets.
+
+-   The Thames water API is simple and clean. It delivers *almost* enough data to replicate their online map (except for where the EDM is dicharging into
+
+irst there's the obligatory step of loading the libraries that I'll be using throughout this post:
+
+# Tidying up some lose ends (data cleansing)
+
+Throughout these posts I've only
+
+## Discontinuities in the openRivers dataset
+
+I've been curious about the apparent disjoins in the OS open rivers dataset
+
+```{r load the libraries used within this demo, output = FALSE, warning = FALSE }
+library(sf)
+library(tidyverse)
+library(lubridate)
+library(sfnetworks)
+library(leaflet)
+library(leaflet)
+source("C:/Users/leoki/CODE/R-Home/blog/lib/maps_lib.R")
+source("C:/users/leoki/CODE/R-Home/shiny/openRivers/functions.R")
+```
+
+load the network I saved at the end of te third post:
+
+```{r load the cached network, output = FALSE, warning = FALSE}
+
+message("loading network")
+sfnet_rivers_grouped <- readRDS(file = "C:/users/leoki/CODE/R-Home/shiny/openRivers/data/sfnet_rivers_grouped.Rds")
+
+```
+
+find the areas I've worried about
+
+```{r find rte missing links, output = FALSE, warning = FALSE}
+
+bridging_dist <- 75
+missing_links <- get_missing_links(sfnet_rivers_grouped,
+                                   from = "source",
+                                   to = "outlet",
+                                   bridging_dist = bridging_dist,
+                                   match_name = F)
+
+bboxes_name_not_matched <- missing_links %>% st_buffer(dist = units::set_units(bridging_dist, m))
+```
+
+now we can visualise
+
+```{r visualise the POI, warning = FALSE}
+
+#  visualise
+if(T) {
+  leaflet() %>%  
+    addTiles(group = "OSM (default)") %>%
+    # a sausage around the POI
+    addPolygons(data = bboxes_name_not_matched,
+                popup = ~makeHTML(paste0("Nearly outlet & source: ", format(round(length, 2), nsmall = 2), '<br>',
+                                         buildGoogleMapsURLFromStGeom(st_centroid(geom)))),
+                color = "green",
+                label = ~paste0("Nearly outlet & source: ", format(round(length, 2), nsmall = 2))) %>%
+    # the nearby network
+    addPolylines(data = sfnet_rivers_grouped %>%
+                   activate(links) %>%
+                   filter(!tidygraph::edge_is_multiple()) %>%
+                   filter(!tidygraph::edge_is_loop()) %>%
+                   mutate(geom = st_make_valid(geom)) %>%
+                   st_as_sf() %>%
+                   st_filter(bboxes_name_not_matched),
+                 weight = 10,
+                 label = ~paste0("River: ", watercourseName)) %>%
+    # the new links
+    addPolylines(data = missing_links,
+                 weight = 7,
+                 color = "orange",
+                 label = ~paste0("New link: ", length))
+}
+
+```
+
+and create an augmented network
+
+```{r augment with new links, output = FALSE, warning = FALSE}
+
+#| 2) merge into old network
+augmented_net <- sfnet_rivers_grouped %>%
+  #      activate(nodes) %>%
+  # tidygraph::bind_edges  will fail
+  # https://github.com/luukvdmeer/sfnetworks/issues/49
+  # nodes need to be in identical places :-/
+  # https://luukvdmeer.github.io/sfnetworks/articles/sfn02_preprocess_clean.html#common-pre-processing-tasks
+  st_network_join(
+    missing_links %>%
+#      st_make_valid(geom) %>%
+      as_sfnetwork(), # there is no tollerance option    tolerance = 10
+  ) # %>% tidygraph::convert(to_spatial_explicit, .clean = TRUE)
+
+
+```
+
+and plot it to check
+
+```{r visualise augmented network, warning = FALSE}
+# visualise
+#|  visualise
+if(T) {
+  leaflet() %>%  
+    addTiles(group = "OSM (default)") %>%
+    # a sausage around the POI
+    addPolygons(data = bboxes_name_not_matched,
+                popup = ~makeHTML(paste0("Nearly outlet & source: ", format(round(length, 2), nsmall = 2), '<br>',
+                                         buildGoogleMapsURLFromStGeom(st_centroid(geom)))),
+                color = "green",
+                label = ~paste0("Nearly outlet & source: ", format(round(length, 2), nsmall = 2))) %>%
+    # the nearby network
+    addPolylines(data = augmented_net %>%
+                   activate(links) %>%
+                   filter(!tidygraph::edge_is_multiple()) %>%
+                   filter(!tidygraph::edge_is_loop()) %>%
+                   mutate(geom = st_make_valid(geom)) %>%
+                   st_as_sf() %>%
+                   st_filter(bboxes_name_not_matched),
+                 weight = 10,
+                 label = ~paste0("River: ", watercourseName)) %>%
+    # the new links
+    addPolylines(data = missing_links,
+                 weight = 7,
+                 color = "orange",
+                 label = ~paste0("River: ", watercourseName, " length: ", length))
+}
+
+```
+
+and save the result
+
+```{r save results if desired, output = FALSE, warning = FALSE}
+
+if(F) {
+# save
+augmented_net %>%
+  saveRDS(file = "c:/Users/leoki/CODE/R-Home/shiny/openRivers/cache/sfnet_rivers_grouped_augmented.Rds")
+
+augmented_net %>%
+  save_sf_network_as_geopkg("C:/Users/leoki/DATA/LAK/os_river_augmented.gpkg")
+
+augmented_net %>%
+  activate(links) %>%
+  st_filter(bboxes_name_not_matched) %>%
+  mutate(geom = st_make_valid(geom)) %>%
+  save_sf_network_as_geopkg("C:/Users/leoki/DATA/LAK/os_river_augmented_filtered.gpkg")
+
+new_links %>%
+  st_make_valid(geom) %>%
+  as_sfnetwork() %>%
+  save_sf_network_as_geopkg("C:/Users/leoki/DATA/LAK/new_links.gpkg")
+}
+```
+
+# Things I've not done that perhaps I should've...
+
+There's plenty I should've done but haven't. These include:
+
+-   **(not) good enough practices:** I've cut a few coding corners while writing these posts. Sure, I should have embedded all of them into my day-to-day by now, but I'll put all that on the "opportunities for self improvement" stack along with actually learning French, and touch-typing properly. I'm blaming my indiscretions on a mixture of the added overheads here of learning how to bog & publish apps (there's a first time for everything), and utter denial that I was ever going to do either. To be fair, I don't think I'm that far off. If I started, I'd end up re-factoring a load of code en-route. I've build up probably a few days of technical debt I'm walking away from by not doing some things when I should've and not fixing them now.
+
+-   **Better practices:** This is obviously a great opportunity to highlight what I *should* have done throughout. I refer the interested reader to a wonderful set of resources modestly titled "**Good Enough Practices for Scientific Computing**" available [online here](http://swcarpentry.github.io/good-enough-practices-in-scientific-computing/) (with [pdf version here](https://arxiv.org/abs/1609.00037)). *Aside:* I am beginning to wonder how many of these tips can be retrospectively documented by the emerging generations of AI. For example, documenting functions (I'm sure chatGPT can help here! I have used it to comment the asHTML() function in post 2). Some people are already using GPT4 to write code and even generate web apps from sketches drawn on.
+
+# Summary
+
+To summarise, in this post:
+
+-   I have explored a geospatial open dataset provided by the Ordnance Survey. The dataset is great, but has the usual limitation and caveats, especially around completeness of the names of river segments. The coordinates of the river segments look great and will no doubt, come in handy if one were to join this data spatially to other datasets.
+
+-   I have use the connectivity defined in the dataset to build a topological (graph / network) representation of the rivers. This allows virtual navigation around the rivers.
+
+-   I have used the topological rivers to route-find along rivers and to group rivers in to river systems. As with the geospatial attributes, the logical connectivity will be useful in subsequent analysis.
+
+# Where next?
+
+As per previous posts... It's over to you if you wish to continue exploration of the data and find ways to visualize, summarize and generate insight. *The OS open-rivers* open data-set is downloadable and can be manipulated quite simply using the great FOSS toolkits. I hope this post has been interesting. I look forward to other people's apps, posts and summaries of this valuable open data-set.
+
+Personally, I will continue to explore this data, creating visuals and joining it to other open data-sets, but that is for another post...
