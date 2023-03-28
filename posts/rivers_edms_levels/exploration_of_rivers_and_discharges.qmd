@@ -8,7 +8,7 @@ toc: true
 format: 
   html:
     code-fold: true
-categories: [code, analysis, opendata, OS, EDMs, EA, app]
+categories: [code, analysis, opendata, OS, EDM, EA, app]
 ---
 
 # Overview
