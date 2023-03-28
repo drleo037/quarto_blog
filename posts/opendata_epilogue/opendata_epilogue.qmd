@@ -13,7 +13,7 @@ categories: [code, analysis, opendata, OS]
 
 # Overview
 
-I'm drawing to a close this set of posts on #OpenData. Thus far I've published 4 posts:
+I'm drawing to a close this set of posts on #OpenData. Thus-far I've published four posts:
 
 -   [Part 1](https://leo037.quarto.pub/leos-blog/posts/opendata%20thamesEDM/opendata%20thamesEDM.html) of the series explored an open data-set on [Event Discharge Monitors](https://www.thameswater.co.uk/about-us/performance/river-health) (EDMs) recently made accessible by *Thames Water.*
 
@@ -23,170 +23,29 @@ I'm drawing to a close this set of posts on #OpenData. Thus far I've published 4
 
 -   [Part 4](https://leo037.quarto.pub/leos-blog/posts/rivers_edms_levels/exploration_of_rivers_and_discharges.html) described how I pulled together all three #OpenData sets into an online application ([you can use the application by clicking here](https://drleo037.shinyapps.io/openRivers/)). The app allowed the user to check *any* point on *any* river, the app would then highlight any EDMs that were discharging sewage upstream from that point on the river. The app also visualised the EDM discharges (published by Thames Water) in the context of river loadings (as evidence from the EA #OpenData API).
 
-# Ramblings on
-
 Throughout these posts I've only done minimal work to check and cleanse the data. There's a long list of questions that arose as I loaded and processed the datasets.
 
--   The Thames water API is simple and clean. It delivers *almost* enough data to replicate their online map (except for where the EDM is dicharging into
+-   The Thames water API is simple and clean. It delivers everything one might need to replicate their on-line map. The pre-requisite of registering for the service has benefits (such as notifications from Thames Water when updates and outages. However, the requirements to use (and keep secret) client IDs and tokens when collecting data, and the restrictions in the terms of service make publishing of third-party apps that show live data more complicated than might be otherwise. For example, when I was writing the shiny interactive app, I was not able to add a "get latest data" button that would collect data from the Thames API as I was concerned this would breach the terms which state that users must not "allow any other person to access this API using your login details". Hence, to download data I have had to add a step by which one must enter credentials to collect data from the API.
+-   The Thames Water API offers two endpoints, one for live data, another for historic discharge events. As explored in the first post in this series, the context of the data returned from the historic end-point could be explained. I struggled to reverse-engineer what the data represented (particularly the "Offline start" and "Offline stop" alert status'). This lead to my summary of this dataset being inconclusive, ambiguous and potentially incorrect. Finally, improved documentation would not be quite enough to release full value from the historic end-point. Because the historic EDM status data only contains status changes, and is limited to only include status changes since 2022-04-01 it is not currently possible to fully reconstruct that state of all EDMs, even during the date-ranges supported by the API. If I could request one extra piece of information, it would be something that would summarise the (initial) state of EDMs from which, subsequent state changed could be tracked.
+-   Even though I have some minor observations on the data shared by Thames Water, making the data available is a brave and constructive step. Presumably, Thames Water are open to feedback on the API and may adapt this resource in the future to improve the experience of the consumer. This resource is already industry leading, and with a few small tweaks it would be excellent.
 
-irst there's the obligatory step of loading the libraries that I'll be using throughout this post:
+# Things I've not done that perhaps I should have...
 
-# Tidying up some lose ends (data cleansing)
+## Thinks I just couldn't walk away from once they'd surfaced
 
-Throughout these posts I've only
+When I began this "epilogue" write-up I had only explored the "live" endpoints for the EA and EDM APIs. The list of things I began to write up here included:
 
-## Discontinuities in the openRivers dataset
+1.  "accessing historic data from EDM and EA APIs"
 
-I've been curious about the apparent disjoins in the OS open rivers dataset
+2.  "handling apparent disconnections in the Ordnance Survey rivers dataset that limit my ability to search upstream for discharges into rivers.
 
-```{r load the libraries used within this demo, output = FALSE, warning = FALSE }
-library(sf)
-library(tidyverse)
-library(lubridate)
-library(sfnetworks)
-library(leaflet)
-library(leaflet)
-source("C:/Users/leoki/CODE/R-Home/blog/lib/maps_lib.R")
-source("C:/users/leoki/CODE/R-Home/shiny/openRivers/functions.R")
-```
+The more I began to explain these here, the more I just wanted to face into them. After all, the point of this series was to explore opendata. Eventually I buckled, gave in to "scope creep". It took me on a longer that expected journey into reshaping, big(ish) data-processing and graph-augmentation. None of which I regret in any way.
 
-load the network I saved at the end of te third post:
+I have revisited [post one](https://leo037.quarto.pub/leos-blog/posts/opendata%20thamesEDM/opendata%20thamesEDM.html) and [post two](https://leo037.quarto.pub/leos-blog/posts/opendata_EA/opendata_EA.html) and [post three](https://leo037.quarto.pub/leos-blog/posts/opendata_UK_rivers/opendata_UK_rivers.html), adding sections the extra steps. I've signposted the new content at the top of each post for those that read them when they were initially published. To cut a long story short, both Thames Water and the EA publish enough detail on discharges and river levels for both to be analysed together over time, and there are a few steps that can be taken to significantly improve the connectivity of river network for tracing purposes.
 
-```{r load the cached network, output = FALSE, warning = FALSE}
+## Things that sill not done
 
-message("loading network")
-sfnet_rivers_grouped <- readRDS(file = "C:/users/leoki/CODE/R-Home/shiny/openRivers/data/sfnet_rivers_grouped.Rds")
-
-```
-
-find the areas I've worried about
-
-```{r find rte missing links, output = FALSE, warning = FALSE}
-
-bridging_dist <- 75
-missing_links <- get_missing_links(sfnet_rivers_grouped,
-                                   from = "source",
-                                   to = "outlet",
-                                   bridging_dist = bridging_dist,
-                                   match_name = F)
-
-bboxes_name_not_matched <- missing_links %>% st_buffer(dist = units::set_units(bridging_dist, m))
-```
-
-now we can visualise
-
-```{r visualise the POI, warning = FALSE}
-
-#  visualise
-if(T) {
-  leaflet() %>%  
-    addTiles(group = "OSM (default)") %>%
-    # a sausage around the POI
-    addPolygons(data = bboxes_name_not_matched,
-                popup = ~makeHTML(paste0("Nearly outlet & source: ", format(round(length, 2), nsmall = 2), '<br>',
-                                         buildGoogleMapsURLFromStGeom(st_centroid(geom)))),
-                color = "green",
-                label = ~paste0("Nearly outlet & source: ", format(round(length, 2), nsmall = 2))) %>%
-    # the nearby network
-    addPolylines(data = sfnet_rivers_grouped %>%
-                   activate(links) %>%
-                   filter(!tidygraph::edge_is_multiple()) %>%
-                   filter(!tidygraph::edge_is_loop()) %>%
-                   mutate(geom = st_make_valid(geom)) %>%
-                   st_as_sf() %>%
-                   st_filter(bboxes_name_not_matched),
-                 weight = 10,
-                 label = ~paste0("River: ", watercourseName)) %>%
-    # the new links
-    addPolylines(data = missing_links,
-                 weight = 7,
-                 color = "orange",
-                 label = ~paste0("New link: ", length))
-}
-
-```
-
-and create an augmented network
-
-```{r augment with new links, output = FALSE, warning = FALSE}
-
-#| 2) merge into old network
-augmented_net <- sfnet_rivers_grouped %>%
-  #      activate(nodes) %>%
-  # tidygraph::bind_edges  will fail
-  # https://github.com/luukvdmeer/sfnetworks/issues/49
-  # nodes need to be in identical places :-/
-  # https://luukvdmeer.github.io/sfnetworks/articles/sfn02_preprocess_clean.html#common-pre-processing-tasks
-  st_network_join(
-    missing_links %>%
-#      st_make_valid(geom) %>%
-      as_sfnetwork(), # there is no tollerance option    tolerance = 10
-  ) # %>% tidygraph::convert(to_spatial_explicit, .clean = TRUE)
-
-
-```
-
-and plot it to check
-
-```{r visualise augmented network, warning = FALSE}
-# visualise
-#|  visualise
-if(T) {
-  leaflet() %>%  
-    addTiles(group = "OSM (default)") %>%
-    # a sausage around the POI
-    addPolygons(data = bboxes_name_not_matched,
-                popup = ~makeHTML(paste0("Nearly outlet & source: ", format(round(length, 2), nsmall = 2), '<br>',
-                                         buildGoogleMapsURLFromStGeom(st_centroid(geom)))),
-                color = "green",
-                label = ~paste0("Nearly outlet & source: ", format(round(length, 2), nsmall = 2))) %>%
-    # the nearby network
-    addPolylines(data = augmented_net %>%
-                   activate(links) %>%
-                   filter(!tidygraph::edge_is_multiple()) %>%
-                   filter(!tidygraph::edge_is_loop()) %>%
-                   mutate(geom = st_make_valid(geom)) %>%
-                   st_as_sf() %>%
-                   st_filter(bboxes_name_not_matched),
-                 weight = 10,
-                 label = ~paste0("River: ", watercourseName)) %>%
-    # the new links
-    addPolylines(data = missing_links,
-                 weight = 7,
-                 color = "orange",
-                 label = ~paste0("River: ", watercourseName, " length: ", length))
-}
-
-```
-
-and save the result
-
-```{r save results if desired, output = FALSE, warning = FALSE}
-
-if(F) {
-# save
-augmented_net %>%
-  saveRDS(file = "c:/Users/leoki/CODE/R-Home/shiny/openRivers/cache/sfnet_rivers_grouped_augmented.Rds")
-
-augmented_net %>%
-  save_sf_network_as_geopkg("C:/Users/leoki/DATA/LAK/os_river_augmented.gpkg")
-
-augmented_net %>%
-  activate(links) %>%
-  st_filter(bboxes_name_not_matched) %>%
-  mutate(geom = st_make_valid(geom)) %>%
-  save_sf_network_as_geopkg("C:/Users/leoki/DATA/LAK/os_river_augmented_filtered.gpkg")
-
-new_links %>%
-  st_make_valid(geom) %>%
-  as_sfnetwork() %>%
-  save_sf_network_as_geopkg("C:/Users/leoki/DATA/LAK/new_links.gpkg")
-}
-```
-
-# Things I've not done that perhaps I should've...
-
-There's plenty I should've done but haven't. These include:
+There are still plenty I should have done but haven't. These include:
 
 -   **(not) good enough practices:** I've cut a few coding corners while writing these posts. Sure, I should have embedded all of them into my day-to-day by now, but I'll put all that on the "opportunities for self improvement" stack along with actually learning French, and touch-typing properly. I'm blaming my indiscretions on a mixture of the added overheads here of learning how to bog & publish apps (there's a first time for everything), and utter denial that I was ever going to do either. To be fair, I don't think I'm that far off. If I started, I'd end up re-factoring a load of code en-route. I've build up probably a few days of technical debt I'm walking away from by not doing some things when I should've and not fixing them now.
 
