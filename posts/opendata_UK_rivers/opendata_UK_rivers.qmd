@@ -994,11 +994,11 @@ makeHTML <- function(htmlText){
 
 buildGoogleMapsURLFromLatLong <- function(myLati, myLongi) {
   result <- paste0('<br>',
-                   '<a rel = "noreferrer" href="https:www.google.co.uk/maps/@', 
+                   '<a href="https://www.google.co.uk/maps/@', 
                    gsub(" ", "", format(round(myLati, 8), nsmall = 8)),
                    ",", 
                    gsub(" ", "", format(round(myLongi, 8), nsmall = 8)), 
-                   ',19z" target="_blank">',
+                   ',19z" .external target="_blank" rel = "noopener noreferrer nofollow" >',
                    'Show in Googlemaps</a>')
 }
 
@@ -1044,7 +1044,8 @@ After quite a bit of checking I became comfortable with the changes it suggests.
 The final step is to add these new links to the river network to allow the tracing algorithm to traverse the rivers more completely (and save the augmented network for future use if required).
 
 ```{r merge the new links, warning=FALSE, message=FALSE}
-#| 2) merge into old network
+
+# 2) merge into old network
 augmented_net <- sfnet_rivers_grouped %>%
   #      activate(nodes) %>%
   # tidygraph::bind_edges  will fail
