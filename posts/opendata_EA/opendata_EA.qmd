@@ -7,12 +7,14 @@ toc: true
 format: 
   html:
     code-fold: true
-categories: [code, analysis]
+categories: [code, analysis, EA, opendata]
 ---
+
+(updated 24th March 2023 to include an extra expo of the vast amounts of historic data available from the EA, see @sec-collecting-historic-data )
 
 # Overview of this post
 
-In this post I am going to explore an open data-set source from the [UK Environment Agency](https://www.gov.uk/government/organisations/environment-agency) (EA). The source is very rich and includes measurements of water levels and flows, and information on the monitoring stations providing those measurements along with other information. This post follows on from [Part 1 of this series](https://leo037.quarto.pub/leos-blog/posts/opendata%20thamesEDM/opendata%20thamesEDM.html) which explored another open dataset relating to what is going in to UK rivers. As per part 1: This blog is **only** here to highlight the existence of the *open-data* services and as a 'hello world' example for getting started analyzing them using R.
+In this post I am going to explore an open data-set source from the [UK Environment Agency](https://www.gov.uk/government/organisations/environment-agency) (EA). The source is very rich and includes measurements of water levels and flows, and information on the monitoring stations providing those measurements along with other information. This post follows on from [Part 1 of this series](https://leo037.quarto.pub/leos-blog/posts/opendata%20thamesEDM/opendata%20thamesEDM.html) which explored another open dataset relating to what is going in to UK rivers. As per part 1: This blog is **only** here to highlight the existence of the *open-data* services and as a 'hello world' example for getting started analysing them using R.
 
 In this blog I want to:
 
@@ -440,9 +442,61 @@ ea_dfs$ea_stations_sf %>%
 
 **Note:** The above map displays data from whenever this blog was last refreshed, so the *measurement* values may be quite old if this blog is still being read some time in the future... It's very easy to create apps that pull data at some interval or when a button is pressed. In R I would use use [shiny](https://shiny.rstudio.com/), but there are equivalent frameworks in Python, Javascript etc.
 
-## Time-series data from the API
+Step 4: Summarise
 
-We can ask the API to return historic values recorded for measurements using the */readings* endpoint. In the code below I gather time series for *gauge levels* from 21 EA *stations* along the *River Thames*. I'm also protecting myself from any potential confusion in units by only selecting measures with units mASD[^5].
+River loading statistics
+
+The value of open-data is that it empowers exploration and innovation. If you have access to the data, then you can begin to create new insights. Perhaps it would be interesting to merge a few of the data-frames and calculate a measure of how heavily loaded the rivers are currently (using data from ea_dfs$ea_latest_readings) compared to historic extremes (using data from ea_dfs$ea_historic_stage_ranges) .
+
+The code in this section does the following:
+
+First the data-frames are joined (using inner_joins so that stations without ranges are automatically filtered out)
+
+the code then calculates a 'percent of typical high' measure. The measure gives some indication of the load on the river. It is normalized (between typical low & typical high) such it can be averaged across different stations and rivers. For illustration:
+
+A value near 100% would represent very high water levels (near 1-in-20 high water levels)
+
+A value near 0% would be represent very low water levels (near those low levels only seen 5% of the time)
+
+{r create the data you want to see in the world, warning=F, message=F}
+
+ea_dfs$ea_stats <- ea_dfs$ea_stations_sf %\>% select(station_id, label, river_name, stage_scale_typical_range_low, stage_scale_typical_range_high) %\>% mutate(compound_id = paste0(river_name, "-", label), .before = 1) %\>% \# st_filter(catchment_boundary_sf) %\>% inner_join( \# get the latest measurements for the stages ea_dfs$ea_station_measurements %>% filter(qualifier == "Stage") %>% select(station_id, measure_id) %>% inner_join(ea_dfs$ea_latest_readings) %\>% select(station_id, date_time, value, unit_name) ) %\>% mutate(pct_typical_high = (value - stage_scale_typical_range_low) / (stage_scale_typical_range_high - stage_scale_typical_range_low))
+
+Once the data has been prepared we can visualize is across a number of stations to check the general loading of rivers. In the plot below I have joined the dataset to the maps of the water company boundaries so that I can generate a plot for each water company and compare the relative stress levels of rivers in each water company.
+
+Note: there are lots of water companies (some of which serve a number of different geographies), so I've chosen to limit the number shown to only the largest by geographic area...
+
+{r plot histograms of percent loading on stages, warning=FALSE, message=FALSE}
+
+p\<- ea_dfs\$ea_stats %\>% st_join(wc_bundaries_sf %\>% select(AreaServed, COMPANY) %\>% filter(st_area(geom) \> units::set_units(10e8, m\^2) )) %\>% #\| Some measurements fall outside the boundaries of the big WACs #\| the can convert NA to "Other" (more readable) using coalesce() mutate(COMPANY = coalesce(COMPANY, "Other")) %\>% as_tibble() %\>% ggplot() + geom_histogram(aes(x = pct_typical_high, colour = COMPANY, fill = COMPANY), show.legend = FALSE) + scale_x\_continuous(labels = scales::percent, limits = c(-0.1, 1.1)) + facet_wrap(\~ COMPANY, scales = "free") + labs(title = paste0("Loading of river stages (Data collected from EA API:", data_collection_dt, ")"), subtitle = paste0("0% = readings at typical low (only 1 in 20 readings have been lower)\n100% = readings at typical high (only 1 in 20 readings have been higher)"), x = "Current gauge level as percentage of typical high levels (baseline typical low levels)", y = "Count of station stages")
+
+p
+
+In the above plot, I have tried to highlight the loading of the rivers within the boundaries of the largest water companies. What I observe from these plots includes:
+
+This visualisation has potential to be practically useful. There's a lot of information condensed into this plot. Once familiar with the plot the reader can very quickly see how heavily loaded the river networks are for any particular company (as the "hump" of the histogram moves to the right of the plot when the river network does become heavily loaded). Also, its very easy to see how many measures are contributing to the assessment of load.
+
+The EA dataset doesn't cover all of the rivers in all of of the largest water companies. There's only a few available for the Welsh Companies. The EA dataset for river levels is focused on stations in England even if there are tidal measurements around the entire GB mainland. The extent of the availability of gauge level measurements can be explored in the interactive map from @sec-stationmap by selecting the 'gauge' radio-button option.
+
+Some measurements look strange... Some measurements can report current values above both the typical and max_on_record or below the min_on_record. I do not have time to explore this further in this post, but it's another example of the rabbit-holes that should be explored when cleansing data and understanding how to use a dataset properly. I'm presuming here that the data is wrong rather than my interpretation of it, but I could well have overlooked something about this dataset and be misusing or misinterpreting it as a result.
+
+# Collecting time-series data from the EA-API
+
+The EA have provided a range of ways to collect data from their measurement stations. Up until this point I have only been investigating the *current* value for each measurement. Because this is a common use-case
+
+-   **Current data:** as described in the EA API documentation under the section: notes on crawling:
+
+    -   *'A common requirement is for an application to maintain a copy of all the latest level or flow values from some (or all) of the measurement stations. The efficient way to do this is to issue this single call every 15 mins: [http://environment.data.gov.uk/flood-monitoring/data/readings?latest](https://environment.data.gov.uk/flood-monitoring/data/readings?latest). This will retrieve the latest value for all measurements - from which you can pick the ones you are interested. Since the data changes at most every 15 mins then this single call four times an hour will ensure a complete track of all of the data. This is **much** preferable to crawling all the stations every 15 mins picking up a single latest value for each station one at a time. However, this is not sufficient to maintain a complete historical trace since readings are sometimes updated in batches. For that purpose a query for the relevant station readings using the `since` filter is appropriate.'*
+
+-   **Recent Data (up to about 6 weeks old):** The EA API endpoint for stations and measurements allows collection of data *since* some date. as per the section above, this is a good way to collect a contiguous historical trace for a particular station. However, the *since* option only allows collection of data up to about 6 weeks old. If you want to collect older data, The EA pride access to archives (see below)
+
+-   **Historic data (any historical data):** The EA also provides daily dumps of measurement data. Their excelent documentation notes: *'Measurement readings are archived daily as dump files in CSV format. Both the short form and the `_view=full` form are available. The data is available from [http://environment.data.gov.uk/flood-monitoring/archive](https://environment.data.gov.uk/flood-monitoring/archive) with individual archives being at http://environment.data.gov.uk/flood-monitoring/archive/readings-{full-}{date}.csv.'*
+
+In the following two sections I explore the recent and historic data as they each present their own distinct opportunities and challenges.
+
+## Collecting recent data (many days at once for each measurement)
+
+We can ask the API to return *recent* values recorded for measurements (up to about 6 weeks ago) using the */readings* endpoint. In the code below I gather time series for *gauge levels* from 21 EA *stations* along the *River Thames*. I'm also protecting myself from any potential confusion in units by only selecting measures with units mASD[^5].
 
 [^5]: The EA API documentation highlights that typical values are mAOD (for metres relative to the Ordnance Survey datum), mASD (for metres relative to the local stage datum), m (for metres with an unspecified datum).
 
@@ -537,7 +591,265 @@ Perhaps it's worth considering a few characteristics of the above plots:
 
 -   Because of the ordering, any surges in river level due to rainfall up-stream may propagate downstream over time, so there may be a lagged correlation between station stage levels from left-to-right and top-to-bottom of the facets. For example: the time-series for Pinkhill, Kings and Osney locks have very similar shapes, but time-shifted.
 
-# Step 4: Summarise
+## Collecting Historic data (many measurements at once for each day) {#sec-collecting-historic-data}
+
+The daily archives of EA measurements are accessible from [http://environment.data.gov.uk/flood-monitoring/archive](https://environment.data.gov.uk/flood-monitoring/archive). To access any specific day, one appends '/readings-{full-}{date}.csv'
+
+**Warning**: As we've already seen, the EA manage and publish data from a lot of measurements on a lot of stations. Each csv of historic daily data is about 56 Mb and includes flow, levels, rainfall and all other sensor data available from the API.
+
+### Big(ish) data
+
+Because I'm writing this post as part of a series that includes storm event discharge open-data (see [post 1](https://leo037.quarto.pub/leos-blog/posts/opendata%20thamesEDM/opendata%20thamesEDM.html)), I would like to compare Thames Water discharges against rainfall and river levels in the Thames region. The rain and river level datasets are only a fraction of the whole EA dataset, and the Thames Water region is only a fraction of the entire geography managed by the EA. However, because the structure of the archives is daily archives for *all* data for *everywhere*, extracting data for even a single measurement for a year would require all 365 daily CSVs (each with a payload of 56Mb) , or about 20Gb of data.
+
+On the bright side, if we could collect and find a way to process this volume of data, the download would be only one hit on the EA API (at least, one large sequence of hits) on the EA API. Any subsequent alternative investigations could be done locally as *all* the data for *all* the measurements would be at hand. The downside is that 20Gb is quite a lot of data to slice and dice and may not even fit in memory of a modest modern computer. If we were to analyse these data using (say) Python or R, common libraries like [Pandas](https://pandas.pydata.org/) and [polars](https://www.pola.rs/) (for Python), [dplyr](https://dplyr.tidyverse.org/) (for R), or [data.table](https://cran.r-project.org/web/packages/data.table/vignettes/datatable-intro.html) (for R and Python) risk failing catastrophically with "out of memory" errors. At the time of writing, I'm lucky enough to have a machine with 16Gb of RAM, and the 20Gb CSVs just about squeezes in to memory if I used data.table, however, the loading process come quite close to exceeding physical memory, so I have considered alternatives:
+
+-   **Break the problem down:** "Q: How do you eat an elephant? A: One bite at a time :-)"... I could chose to handle each day csv iteratively, extracting only what I need and storing it elsewhere so that the "what & where" subsetting (and possibly even a daily summarisation) can be done **before** all the days are stacked end-to-end and analysed or plotted.
+
+-   **Bring in some big-gun analytics:** We're in the age of big-data, there are a range of options I could employ if I wanted to eat the whole elephant...
+
+    -   Technologies like [SPARK](https://spark.apache.org/) have been developed to deliver data engineering & analytics in a scalable & elastic way (i.e. to seamlessly allow almost arbitrarily large data to be distributed across many computers making analytics tasks tractable.
+
+    -   Other alternatives might be to put the data into client-server databases ([PostgreSQL](https://www.postgresql.org/) being my favourite FOSS version, but other systems like Influx [tuned for timeseries](https://db-engines.com/en/ranking/time+series+dbms) are also available). These can be distributed, but even on single machines employ some high-end computer science to handle data efficiently.
+
+    -   I have chosen to use [duckDB](https://duckdb.org/) in this instance. My rationale was partly curiosity (I've been following their successes for some time but have never had a decent reason to dive in until now), and partly practical (I now need larger-than-memory data manipulation). I'm very familiar with postgreSQL (and SQL in general), and duckDB has received a lot of kudos and attention in analytics communities lately as a simple and n DB for analytics. The [duckDB website](https://duckdb.org/) holds a wealth of detail but is neatly summarised as having: "All the benefits of a database, none of the hassle". It's simple and sits neatly in the "bigger-than-memory analytics" space and works from Python, R, Java, Node.js, C++, Julia and ODBC SQL.
+
+### Lets get quacking (sorry, I couldn't resist)
+
+At there highest level, I'm going to have to go through the following steps:
+
+1.  Collect the CSV archive datasets from the EA API
+
+2.  Import the data into the analytics system (duckDB)
+
+3.  big(ish) data processing and analysis, simplifying and distilling down into consumable chunks.
+
+4.  summarise and visualise the (no longer big-ish) data
+
+I thought once or twice about including this here, but I hope I can keep far enough out of the detail to maintain the focus on the EA data rather than the technologies I'm using to provide my answers.
+
+#### Historic data analysis step 1: collect the data from the EA API
+
+This is "simply" a case of iterating over each date for which I want to collect the data, calling the URL and storing the results somewhere safe. I've commented out the code below, only so that it's not run each time I publish this blog. It took about 1hour 10 mins to download all 352 CSVs (it's not quite 365 days since 2022-04-01).
+
+```{r download the CSVs containing historic archives of EA measurements, warning=FALSE}
+
+#| this code "Map"s a list of dates onto download.file.
+#| "Map can be thought of as a loop.  it's the same as:
+#| for (this_date in (list of dates) {
+#|   create URL of csv from "https://envi[...]archive/readings-" & this_date
+#|   download the file from the URL into the local directory defined by csv_path
+#| }
+#| I've defined my own csv_path, it's not relevant to this post
+#| NOTE
+#| IK've commented out the code.
+#| I dont want to collect all the data every time I publish this post!
+if(FALSE) {
+  Map(function(i) {
+    f = str_c("https://environment.data.gov.uk/flood-monitoring/archive/readings-", i, ".csv")
+    download.file(f, destfile = str_c(csv_path, basename(f)))
+  }, seq.Date(from = from_date,
+              to = to_date,
+              by = by_date)
+  )
+  # this took 1hr 12min to get all 352 56Gb csvs
+}
+
+```
+
+#### Historic data analysis step 2: load all the CSVs into duckDB
+
+The process of loading the CSVs into duckDB is very simple (see folded code if you're interested)
+
+```{r load the data from the CSVs into duckDB, warning=FALSE, message=FALSE}
+
+# Note: this path only works on my config:
+duck_path <- "C:/Users/leoki/DATA/EA/duckDB/duckDB_EA"
+
+#| loading all 352 files takes:
+#|    user  system elapsed 
+#|    139.19   28.58  288.86 
+#|    .
+#| This code:
+#|   1) gets a list of CSVs that can be loaded (as per previous code chunk)
+#|   2) establishes a connection to a (new) duckDB database
+#|   3) 
+#| NOTE
+#| I've commented out the code.
+#| I dont want to collect all the data every time I publish this post!
+if(FALSE) {
+  Sys.setenv(DUCKDB_NO_THREADS = 8)
+  # get a list of files tro import....
+  files = dir(path = csv_path, pattern = "csv$", full.names = T)
+  # establish a connection to a (new) duckDB database...
+  con <- dbConnect(duckdb(duck_path))
+  # create a new table called "ea_measurements"
+  # and finally itterate over all the files,  copying them into the table 
+  print(system.time({
+    dbExecute(con, "CREATE TABLE ea_measurements(
+dateTime TIMESTAMP,
+measure  VARCHAR(100),
+value DOUBLE);")
+    for(f in files) {
+      q = sprintf("COPY ea_measurements FROM '%s' ( IGNORE_ERRORS TRUE );", f)
+      dbExecute(con, q)
+    }
+  }))
+}
+```
+
+I also push another table into duckDB. This is a dataset that provides context to the measurement values. I chose to do this so that I will be able to slice by type of measurement and location inside duckDB , thereby making the most of the efficiencies and larger-than-memory analytics capabilities.
+
+```{r load a table that contains the details of the measurements themselves, warning=FALSE, message=FALSE}
+
+if(FALSE) {
+  # add another from and R DF
+  # dbExecute(con, "DROP TABLE ea_station_measurements")
+  dbWriteTable(con, "ea_station_measurements",
+               ea_dfs$ea_station_measurements %>%
+                 mutate(short_measure = basename(measure_id)) %>%
+                 rename(measure = measure_id) %>%
+                 inner_join(
+                   ea_dfs$ea_stations_sf %>% as_tibble() %>%
+                     select(station_id, label, river_name, lat, long)
+                 ),
+               overwrite = TRUE
+  )
+}
+
+```
+
+#### Historic data analysis step 3: extract some summaries
+
+All the historic CSVs have now been loaded into the database. The DB can be queried (very quickly and efficiently) by opening a connection to the database:
+
+```{r establish a connection to the database, warning=FALSE, message=FALSE }
+library(DBI)
+library(duckdb)
+# establish a connection to a (new) duckDB database...
+con <- dbConnect(duckdb(duck_path))
+# when you're done, you can close the connection as follows
+# DBI::dbDisconnect(con)
+```
+
+and then the database can be queries using standard SQL syntax:
+
+```{r example of accessing the data using SQL, warning=FALSE, message=FALSE}
+tictoc::tic()
+y <- dbSendQuery(con, "SELECT COUNT(*) FROM ea_measurements;")
+dbFetch(y)
+tictoc::toc()
+```
+
+As that simple query showed, I'm now processing over 160 million records. DuckDB allows analysis of vast quantities of data quickly and efficiently. The code below extracts daily summary of a subset of rainfall and river level and returns the results for on-analysis.
+
+```{r access some data using dbplyr, warning=FALSE, message=FALSE}
+library(dplyr)
+library(dbplyr)
+
+# get handles to the tables into the database
+
+ea_mmt_tbl <- tbl(con, "ea_measurements") # the timeseries data
+ea_stnmmt_tbl <- tbl(con, "ea_station_measurements") # context for the timeseries
+
+ea_daily_readings_rain <- ea_mmt_tbl %>%
+  #  select(-measure) %>%
+  inner_join(
+    ea_stnmmt_tbl %>% 
+      filter((lat > 51.3) & (lat < 51.6)) %>% #  a corridow a bit like the thames
+      select(measure, river_name, parameter_name, qualifier, unit_name) %>%
+      filter(unit_name == "mm") %>%
+      filter(qualifier == "Tipping Bucket Raingauge") %>%
+      filter(parameter_name == "Rainfall")
+  ) %>%
+  mutate(dt = as.Date(dateTime)) %>%
+  filter(!is.nan(value)) %>%
+  group_by(dt, measure, parameter_name, qualifier, unit_name) %>%
+  summarise(value = mean(value, na.rm = T)) %>% # show_query()
+  ungroup() %>%
+  collect()
+
+ea_daily_readings_stage <- ea_mmt_tbl %>%
+#  select(-measure) %>%
+  inner_join(
+    ea_stnmmt_tbl %>%
+      filter((lat > 51.3) & (lat < 51.6)) %>% #  a corridor a bit like the thames
+      select(measure, river_name, parameter_name, qualifier, unit_name) %>%
+#      filter(river_name == "River Thames") # %>% head(5) #  only get data for 10 places along the thames
+      filter(qualifier == "Stage") %>%
+      filter(unit_name == "mASD")
+  ) %>%
+  mutate(dt = as.Date(dateTime)) %>%
+  group_by(dt, measure, parameter_name, qualifier, unit_name) %>%
+  filter(!is.nan(value)) %>%
+  summarise(value = mean(value, na.rm = T)) %>%
+  ungroup() %>%
+  collect()
+# 11.92 seconds
+
+```
+
+Note: The code I wrote above is a "pipeline" of data-manipulation in *dplyr* syntax. Some of my favourite aspects of using d(b)plyr is that:
+
+-   d(b)plyr is very readable (each data processing "verb" such as "filter" and "select" is almost self-explanatory)
+
+-   pipelines (that weird-looking '%\>%') make for the steps in some data processing task read like a recipe... Steps in a pipeline are separated with a "%\>%" which you can just read as "then". So the recipe inside a pipeline reads like: "*do* *this*, then *do that*, then ..."
+
+-   The analysis is "lazy", which just means that it will only process data if and when it needs to. Until the point when the data is actually needed the code just builds up a set of instructions (or recipe). at the point of execution there can be significant optimisation of *how* the instructions are implemented. In the previous example, the data is *not* really needed until I called "collect", which returns the results into my session. At the point of collection I have sub-setted the data geographically and by measurements type *and* I have summarise the sub-day data into daily averages so the memory overhead of calculating the result is considerably smaller than it would have been otherwise. In this case I have processed and joined what was once 20Gb of CSVs using less than 2Gb of memory in under 12 seconds.
+
+-   A particularly attractive feature is that the instructions can be presented as RDBMS style SQL query. In fact, in dbplyr, this is exactly how the requests of a pipeline are parcelled up and sent to databases. The process is rock-solid, even though the queries generated from pipelines can become quite sophisticated. The SQL that was executed by the previous pipeline is shown below:
+
+```{r looking at SQL generated by the dbplyr pipeline, warning=FALSE, message=FALSE }
+ea_mmt_tbl %>%
+#  select(-measure) %>%
+  inner_join(
+    ea_stnmmt_tbl %>%
+      filter((lat > 51.3) & (lat < 51.6)) %>% #  a corridor a bit like the thames
+      select(measure, river_name, parameter_name, qualifier, unit_name) %>%
+#      filter(river_name == "River Thames") # %>% head(5) #  only get data for 10 places along the thames
+      filter(qualifier == "Stage") %>%
+      filter(unit_name == "mASD")
+  ) %>%
+  mutate(dt = as.Date(dateTime)) %>%
+  group_by(dt, measure, parameter_name, qualifier, unit_name) %>%
+  filter(!is.nan(value)) %>%
+  summarise(value = mean(value, na.rm = T)) %>%
+  ungroup() %>%
+  show_query()
+```
+
+It's good practice to disconnect from the database when we're finished with it (as shown below).
+
+```{r disconnect from the database, warning=FALSE, message=FALSE}
+DBI::dbDisconnect(con)
+```
+
+#### Historic data analysis step 4: visualising the time-series
+
+Now we can plot or analyse the time-series data however we want. In the graph below I've plotted a daily summary of median gauge levels and rainfall measurements, but there is a huge amount of insight waiting the historic datasets.
+
+```{r plot a high level summary of river levels and rainfall near the River Thames, warning=FALSE, message=FALSE}
+p <- ea_daily_readings_stage %>%
+  mutate(measure = basename(measure)) %>%
+  group_by(dt) %>%
+  summarise(stage_level_m = median(value, na.rm = T)) %>%
+  inner_join(
+    ea_daily_readings_rain %>%
+      mutate(measure = basename(measure)) %>%
+      group_by(dt) %>%
+      summarise(rain_mm = median(value, na.rm = T))
+  ) %>%
+  pivot_longer(c(stage_level_m, rain_mm), names_to = "measurand", values_to = "reading") %>%
+  ggplot() +
+  geom_line(aes(x = dt, y = reading, colour = measurand)) +
+  labs(title = "Historic rainfall and river levels", subtitle = "EA data filtered and summarised", caption = "data from EA historic archives", x = "date", y = "")
+
+plotly::ggplotly(p)
+
+```
+
+The plot shown above is interactive, hover over some of the spikes in rainfall (there's an obvious one on the 2023-03-08), then hover over the corresponding spike in river levels. There looks to be a lag of approximately a day or two between heavy rain and peak flows in rivers.
+
+# Summarising river loadings by water company
 
 ## River loading statistics
 
@@ -553,8 +865,7 @@ The code in this section does the following:
 
     -   A value near 0% would be represent very low water levels (near those low levels only seen 5% of the time)
 
-```{r create the data you want to see in the world, warning=F, message=F}
-
+```{r calculate some stats on EA river levels, warning=FALSE, message=FALSE}
 ea_dfs$ea_stats <- ea_dfs$ea_stations_sf %>%
   select(station_id, label, river_name,
          stage_scale_typical_range_low,
@@ -570,15 +881,13 @@ ea_dfs$ea_stats <- ea_dfs$ea_stations_sf %>%
       select(station_id, date_time, value, unit_name)
   ) %>%
   mutate(pct_typical_high = (value - stage_scale_typical_range_low) / (stage_scale_typical_range_high - stage_scale_typical_range_low))
-
 ```
 
 Once the data has been prepared we can visualize is across a number of stations to check the general loading of rivers. In the plot below I have joined the dataset to the maps of the water company boundaries so that I can generate a plot for each water company and compare the relative stress levels of rivers in each water company.
 
 **Note**: there are lots of water companies (some of which serve a number of different geographies), so I've chosen to limit the number shown to only the largest by geographic area...
 
-```{r plot histograms of percent loading on stages, warning=FALSE, message=FALSE}
-
+```{r plot river loadings grouped by water company}
 p<- ea_dfs$ea_stats %>%
   st_join(wc_bundaries_sf %>%
             select(AreaServed, COMPANY) %>%
@@ -603,9 +912,19 @@ In the above plot, I have tried to highlight the loading of the rivers within th
 
 -   **This visualisation has potential to be practically useful**. There's a lot of information condensed into this plot. Once familiar with the plot the reader can very quickly see how heavily loaded the river networks are for any particular company (as the "hump" of the histogram moves to the right of the plot when the river network does become heavily loaded). Also, its very easy to see how many measures are contributing to the assessment of load.
 
--   **The EA dataset doesn't cover *all* of the rivers in all of of the largest water companies.** There's only a few available for the Welsh Companies. The EA dataset for river levels is focused on stations in England even if there are tidal measurements around the entire GB mainland. The extent of the availability of gauge level measurements can be explored in the interactive map from @sec-stationmap by selecting the 'gauge' radio-button option.
+-   **The EA dataset doesn't cover *all* of the rivers in all of of the largest water companies.** There's only a few available for the Welsh Companies. The EA dataset for river levels is focused on stations in England even if there are tidal measurements around the entire GB mainland. The extent of the availability of gauge level measurements can be explored in the interactive map from [Section 6.1](https://leo037.quarto.pub/leos-blog/posts/opendata_EA/opendata_EA.html#sec-stationmap) by selecting the 'gauge' radio-button option.
 
 -   **Some measurements look strange...** Some measurements can report current values above both the typical and max_on_record or below the min_on_record. I do not have time to explore this further in this post, but it's another example of the rabbit-holes that should be explored when cleansing data *and* understanding how to use a dataset properly. I'm presuming here that the data is wrong rather than my interpretation of it, but I could well have overlooked something about this dataset and be misusing or misinterpreting it as a result.
+
+# Summary
+
+In this post I've explored open data made available by the UK Environment agency. I've only really scratched the surface of this resource, but hopefully I've:
+
+-   shown how to collect and visualise live data
+
+-   shown where to look for, and how to handle much larger archives of historic data
+
+-   alluded to how this data could prove useful when joined with other sources of open-data
 
 # Where next?
 
