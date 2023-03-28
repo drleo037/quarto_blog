@@ -1,19 +1,19 @@
 ---
 title: "Open data (epilogue): Some lessons learned"
 author: "Leo Kiernan"
-date: "2023-02-20"
-image: OS uk rivers.png
+date: "2023-03-24"
+image: big_missing_link.png
 draft: false
 toc: true
 format: 
   html:
     code-fold: true
-categories: [code, analysis, opendata, OS]
+categories: [opendata, EDM, EA, OS]
 ---
 
 # Overview
 
-I'm drawing to a close this set of posts on #OpenData. Thus-far I've published four posts:
+I'm drawing to a close this set of posts on OpenData. Thus-far I've published four posts:
 
 -   [Part 1](https://leo037.quarto.pub/leos-blog/posts/opendata%20thamesEDM/opendata%20thamesEDM.html) of the series explored an open data-set on [Event Discharge Monitors](https://www.thameswater.co.uk/about-us/performance/river-health) (EDMs) recently made accessible by *Thames Water.*
 
@@ -23,46 +23,66 @@ I'm drawing to a close this set of posts on #OpenData. Thus-far I've published f
 
 -   [Part 4](https://leo037.quarto.pub/leos-blog/posts/rivers_edms_levels/exploration_of_rivers_and_discharges.html) described how I pulled together all three #OpenData sets into an online application ([you can use the application by clicking here](https://drleo037.shinyapps.io/openRivers/)). The app allowed the user to check *any* point on *any* river, the app would then highlight any EDMs that were discharging sewage upstream from that point on the river. The app also visualised the EDM discharges (published by Thames Water) in the context of river loadings (as evidence from the EA #OpenData API).
 
-Throughout these posts I've only done minimal work to check and cleanse the data. There's a long list of questions that arose as I loaded and processed the datasets.
+# Observations on the open datasets
 
--   The Thames water API is simple and clean. It delivers everything one might need to replicate their on-line map. The pre-requisite of registering for the service has benefits (such as notifications from Thames Water when updates and outages. However, the requirements to use (and keep secret) client IDs and tokens when collecting data, and the restrictions in the terms of service make publishing of third-party apps that show live data more complicated than might be otherwise. For example, when I was writing the shiny interactive app, I was not able to add a "get latest data" button that would collect data from the Thames API as I was concerned this would breach the terms which state that users must not "allow any other person to access this API using your login details". Hence, to download data I have had to add a step by which one must enter credentials to collect data from the API.
--   The Thames Water API offers two endpoints, one for live data, another for historic discharge events. As explored in the first post in this series, the context of the data returned from the historic end-point could be explained. I struggled to reverse-engineer what the data represented (particularly the "Offline start" and "Offline stop" alert status'). This lead to my summary of this dataset being inconclusive, ambiguous and potentially incorrect. Finally, improved documentation would not be quite enough to release full value from the historic end-point. Because the historic EDM status data only contains status changes, and is limited to only include status changes since 2022-04-01 it is not currently possible to fully reconstruct that state of all EDMs, even during the date-ranges supported by the API. If I could request one extra piece of information, it would be something that would summarise the (initial) state of EDMs from which, subsequent state changed could be tracked.
--   Even though I have some minor observations on the data shared by Thames Water, making the data available is a brave and constructive step. Presumably, Thames Water are open to feedback on the API and may adapt this resource in the future to improve the experience of the consumer. This resource is already industry leading, and with a few small tweaks it would be excellent.
+I am extremely grateful to and impressed by those that are willing to share data openly. It is non-trivial and a significant commitment. It is also 'brave' in that open data is released 'into the wild' without really knowing the audience or purposes to which it will be deployed. The publishers could face criticism about data quality, or documentation. The data may be mis-interpreted, misused or not updated by the consumers.
 
-# Things I've not done that perhaps I should have...
+The following section is written in the context of the gratitude, but includes some of my own subjective observations on the three datasets I've focussed on in the "openRivers" theme. I'm adding them here because they might be of value. Throughout these posts I've only done minimal work to check and cleanse the data and I've not directly engaged any subject matter experts from any company. There's a long list of questions that arose as I loaded and processed the datasets, some are summarises here:
 
-## Thinks I just couldn't walk away from once they'd surfaced
+## The Thames Water API
 
-When I began this "epilogue" write-up I had only explored the "live" endpoints for the EA and EDM APIs. The list of things I began to write up here included:
+The Thames water API is simple and clean. It delivers everything one might need to replicate their on-line map. The pre-requisite of registering for the service has benefits (such as notifications from Thames Water on updates and outages to the service. However, the requirements to use (and keep secret) client IDs and tokens when collecting data, and the restrictions in the terms of service make publishing of third-party apps that show live data more complicated than might be otherwise. For example, when I was writing the shiny interactive app, I was not able to add a "get latest data" button that would collect data from the Thames API as I was concerned this would breach the terms which state that users must not "allow any other person to access this API using your login details". Hence, to download data I have had to add a step by which one must enter credentials to collect data from the API. This step will obviously limit the use of the app as most people will not have registered to use the API, and the task of copy&paste credentials interrupts the user's experience.
 
-1.  "accessing historic data from EDM and EA APIs"
+The Thames Water API offers two endpoints, one for live data, and another for historic discharge events. As explored in the first post in this series, the context of the data returned from the historic end-point could be explained more clearly in the documentation. I struggled to reverse-engineer what the data represented (particularly the "Offline start" and "Offline stop" alert status'). This lead to my summary of this dataset being inconclusive, ambiguous and potentially incorrect. Finally, improved documentation would not be quite enough to release full value from the historic end-point. The historic EDM status data only contains status changes, and is limited to only include status changes since 2022-04-01. This means that it is not currently possible to fully reconstruct the state of all EDMs, even within the date-ranges supported by the API. If I could request one extra piece of information, it would be something that would summarise the *initial* state of EDMs. With this extra piece of information, subsequent state changed could be tracked more completely.
 
-2.  "handling apparent disconnections in the Ordnance Survey rivers dataset that limit my ability to search upstream for discharges into rivers.
+Even though I have some minor observations on the data shared by Thames Water, making the data available is a brave and constructive step. Presumably, Thames Water are open to feedback on the API and may adapt this resource in the future to improve the experience of the consumer. This resource is already industry leading, and with a few small tweaks it would be excellent.
+
+## The EA API
+
+The EA API is quite sophisticated, with many endpoints and a well thought through set of semantic meta-data. This has made the data collection more intricate than I'd expected at the outset. Specifically, some of the deeply nested JSON representations of data has proved challenging to ingest into my traditionally "rectangular" mindset for data manipulation.
+
+I am grateful that the EA provide access to long histories of archived data on station measurements. Even though the structure of the archives requires an "all or nothing" approach to collecting measurement time series (in that *all* the time series for *every* measurement are bundled into daily archive CSVs), modern analytic ecosystems make it relatively easy to consume even on modestly powered home computers.
+
+## The OS open rivers dataset
+
+The OS open rivers dataset is another excellent resource. Aside from the geospatial information contained within the dataset, it's connectivity allows it to be considered as a network and facilitates route-finding along stretches of rivers. If I were to point towards any improvements, I would only request that:
+
+-   The watercourse names could be in-filled more completely (many sections have no name)
+
+-   The connectivity could be sense-checked. As described in the third post of this series, there are gaps in the connectivity of rivers inside this dataset. I cannot tell definitively whether these gaps are by-design (and represent real breakpoints in the river systems due to dams etc.) or just examples of small gaps in data quality creating continuity issues. I suspect the truth lies somewhere between "by design" and "continuity issues" but with access to an SME I can go no further with this than I have in these posts.
+
+# Things I just couldn't walk away from once they'd surfaced!
+
+I began this epilogue after publishing my initial posts (in Feb). I wanted to include a section on "things I didnt do but could have"... When I began the write-up I found myself wanting to revisit and address some of these rather than just say "I could've done" this or that. At the time I first published the posts, I had only explored the "live" endpoints for the EA and EDM APIs. The list of things I began to write up here included:
+
+1.  How to access historic data from EDM and EA APIs
+
+2.  Ways of handling apparent gaps in the connectivity of Ordnance Survey rivers dataset that limit atempts to search upstream for discharges into rivers.
 
 The more I began to explain these here, the more I just wanted to face into them. After all, the point of this series was to explore opendata. Eventually I buckled, gave in to "scope creep". It took me on a longer that expected journey into reshaping, big(ish) data-processing and graph-augmentation. None of which I regret in any way.
 
-I have revisited [post one](https://leo037.quarto.pub/leos-blog/posts/opendata%20thamesEDM/opendata%20thamesEDM.html) and [post two](https://leo037.quarto.pub/leos-blog/posts/opendata_EA/opendata_EA.html) and [post three](https://leo037.quarto.pub/leos-blog/posts/opendata_UK_rivers/opendata_UK_rivers.html), adding sections the extra steps. I've signposted the new content at the top of each post for those that read them when they were initially published. To cut a long story short, both Thames Water and the EA publish enough detail on discharges and river levels for both to be analysed together over time, and there are a few steps that can be taken to significantly improve the connectivity of river network for tracing purposes.
+To cut a long story short, both Thames Water and the EA publish enough detail on discharges and river levels for both to be analysed together over time, and there are a few steps that can be taken to significantly improve the connectivity of river the network for tracing purposes. I have revisited [post one](https://leo037.quarto.pub/leos-blog/posts/opendata%20thamesEDM/opendata%20thamesEDM.html) and [post two](https://leo037.quarto.pub/leos-blog/posts/opendata_EA/opendata_EA.html) and [post three](https://leo037.quarto.pub/leos-blog/posts/opendata_UK_rivers/opendata_UK_rivers.html), adding sections to the extra steps. I've signposted the new content at the top of each post for those that read them when they were initially published.
 
-## Things that sill not done
+# Things I've not done that perhaps I should have...
 
 There are still plenty I should have done but haven't. These include:
 
--   **(not) good enough practices:** I've cut a few coding corners while writing these posts. Sure, I should have embedded all of them into my day-to-day by now, but I'll put all that on the "opportunities for self improvement" stack along with actually learning French, and touch-typing properly. I'm blaming my indiscretions on a mixture of the added overheads here of learning how to bog & publish apps (there's a first time for everything), and utter denial that I was ever going to do either. To be fair, I don't think I'm that far off. If I started, I'd end up re-factoring a load of code en-route. I've build up probably a few days of technical debt I'm walking away from by not doing some things when I should've and not fixing them now.
+-   **(not) good enough practices:** I've cut a few coding corners while writing these posts. Sure, I should have embedded all of the best-practices into my day-to-day by now, but I'll put all that on the "opportunities for self improvement" stack along with actually learning French, and touch-typing properly. I'm blaming my indiscretions on a mixture of the added overheads here of learning how to bog & publish apps (there's a first time for everything), and utter denial that I was ever going to do either. To be fair, I don't think I'm that far off. If I started, I'd end up re-factoring much of the code en-route. I've build up probably a few days of technical debt I'm walking away from by not doing some things when I should've and not fixing them now.
 
--   **Better practices:** This is obviously a great opportunity to highlight what I *should* have done throughout. I refer the interested reader to a wonderful set of resources modestly titled "**Good Enough Practices for Scientific Computing**" available [online here](http://swcarpentry.github.io/good-enough-practices-in-scientific-computing/) (with [pdf version here](https://arxiv.org/abs/1609.00037)). *Aside:* I am beginning to wonder how many of these tips can be retrospectively documented by the emerging generations of AI. For example, documenting functions (I'm sure chatGPT can help here! I have used it to comment the asHTML() function in post 2). Some people are already using GPT4 to write code and even generate web apps from sketches drawn on.
+-   **Better practices:** This is obviously a great opportunity to highlight what I *should* have done throughout. I refer the interested reader to a wonderful set of resources modestly titled: "**Good Enough Practices for Scientific Computing**" available [online here](http://swcarpentry.github.io/good-enough-practices-in-scientific-computing/) (with [pdf version here](https://arxiv.org/abs/1609.00037)). *Aside:* I am beginning to wonder how many of these tips can be retrospectively documented by the emerging generations of AI. For example, documenting functions (I'm sure chatGPT can help here. I have used it to comment the asHTML() function in post 2). Some people are already using GPT4 to write code and even generate web sites from hand-drawn sketches.
 
-# Summary
+# Observations on writing blogs
 
-To summarise, in this post:
+Even though I have spent all of my professional career working on various aspects of turning data into information and insight, these are the first set of blog posts I've published. I'd like to take a moment to reflect on what I found new or different in the process.
 
--   I have explored a geospatial open dataset provided by the Ordnance Survey. The dataset is great, but has the usual limitation and caveats, especially around completeness of the names of river segments. The coordinates of the river segments look great and will no doubt, come in handy if one were to join this data spatially to other datasets.
+-   **Audience:** I have no specific client or consumer for these posts. This has mean that I have had to dream-up use cases and ways in which solutions might be delivered. I've found it quite strange writing "into thin-air". When one has a real audience, it much easier to know how much is enough, and to gauge levels of contextual knowledge and interest, and hence to tailor the detail and emphasis of documentation. **To mitigate the lack on any known audience, I have found it helpful throughout this process to imagine avatars of some of my best (most engaged) clients during this process**. This has allowed me to respond to the kinds of things they would have requested or observed en-route. I can almost here some of them now saying "please could you... add x, explain y, or not bother doing z"
 
--   I have use the connectivity defined in the dataset to build a topological (graph / network) representation of the rivers. This allows virtual navigation around the rivers.
+-   **Subject Matter Experts:** Working with unfamiliar data can be quite difficult. There have been a few times where I have wished to be able to speak with subject matter experts to help contextualise, explain or caveat detail. I also find that part of the fun of working in the data-to-insight business is that you absorb a lot from SMEs and they have an huge amount to offer in terms of what *really* matters, how to look at things, and how not to confidently state stupid stuff. **I've not really found a work-around for lack of access to SMEs.**
 
--   I have used the topological rivers to route-find along rivers and to group rivers in to river systems. As with the geospatial attributes, the logical connectivity will be useful in subsequent analysis.
+-   **Technical buddies**: I have no peers or partners as part of the creative process. I have felt the consequences in design, code-review and general discipline. The design has fluidly evolved throughout as I have been my own client and arbiter. I expect that if I'd been able to tap-into some of the people I've had the pleasure to work with over the years, I would've ended up taking more direct and possibly different paths through the design. I've already stated in the previous section that **I've been lax in a number of areas of coding and documentation but I'm not being too hard on myself in that regard**. The important parts of these posts are the concepts and opportunities. I'm sure any coders that want to explore this kind of thing will be able to do so by picking and choosing bits of my solutions and improving in their own ways.
 
-# Where next?
+-   **Review:** I have missed the luxury of having a second pair of eyes overlooking my work. For instance, when proof-reading my own work I find it all too easy to read what I *think* I've written rather than what I have actually written. **My top-tip in this regard is to make the most of spell checkers and the "read-out-loud" features of web browsers.** I find listening to spoken words is quite different to reading them. Obvious errors and natural flow are much more apparent when I hear them spoken. My work patterns have become a cycle of draft-\>render-\>read-out-loud-\>revise.
 
-As per previous posts... It's over to you if you wish to continue exploration of the data and find ways to visualize, summarize and generate insight. *The OS open-rivers* open data-set is downloadable and can be manipulated quite simply using the great FOSS toolkits. I hope this post has been interesting. I look forward to other people's apps, posts and summaries of this valuable open data-set.
+# Parting thoughts
 
-Personally, I will continue to explore this data, creating visuals and joining it to other open data-sets, but that is for another post...
+I hope that these posts have been interesting and valuable. If "data is the new gold", then those organisations that provide open data are sharing a very precious resource. We should explore and add value wherever possible. The future of opendata in the water industry is looking bright. The water industry has already embarked on a collaborative initiative to share opendata called "stream" ([read more about it here](https://waterinnovation.challenges.org/winners/stream/)). I will be watching this initiative with great interest..

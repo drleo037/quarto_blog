@@ -65,6 +65,8 @@ Here are some really good resources I have come across while searching for data 
 
 -   [Thames Water: (context and signposts) on river health](https://www.thameswater.co.uk/about-us/performance/river-health)
 
+-   [South West Water: interactive map called "waterfit"](https://www.southwestwater.co.uk/environment/waterfit/waterfitlive/)
+
 -   [The rivers trust: (interactive map with extra data) Is my river fit to play in?](https://experience.arcgis.com/experience/e834e261b53740eba2fe6736e37bbc7b/page/home/)
 
 -   [Surfers Against Sewage: (interactive map) Sewer pollution alerts](https://www.sas.org.uk/water-quality/sewage-pollution-alerts/)
