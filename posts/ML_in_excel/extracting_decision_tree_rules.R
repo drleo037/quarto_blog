@@ -154,8 +154,7 @@ if(T) {
     mutate(instruction = as.character(instruction))
   
   # the output of this:
-  tidypredict_fit(model_lm)
-  
+  # tidypredict_fit(model_lm)
   # can be used directly in R
   reg_df %>%
     mutate(total_load_forecast = 29708.1154784826 + (temp * 2.6518224666592) + (pressure * 0.020961937013429) + 
@@ -181,9 +180,9 @@ if(T) {
     ggplot(aes(total_load_actual, total_load_forecast)) +
     geom_point(color = 'green')
   
-lm_excel <- sql_to_excel(trees_df = trees_df_lm, input_df = reg_df, n_sf = 1, squishit = T)
+lm_excel <- fit_to_excel(trees_df = trees_df_lm, input_df = reg_df, n_sf = 1, squishit = T)
 
-model_output_lm <- augment_df_with_rules(lm_excel, reg_df %>% sample_n(140), method = "regession")
+model_output_lm <- augment_df_with_rules(lm_excel, reg_df, method = "regession")
 
 
   message("Finished building LM example.")
@@ -382,7 +381,10 @@ if(T) {
 
   right_way_reg <- sql_to_excel(trees_df = trees_df_reg, input_df = reg_df, n_sf = 1, squishit = T)
   
-  model_output_reg <- augment_df_with_rules(right_way_reg, reg_df %>% sample_n(140), method = "regression")
+  model_output_reg <- augment_df_with_rules(right_way_reg,
+#                                            reg_df,
+                                            reg_df %>% sample_n(200),
+                                            method = "regression")
 
   model_output_reg[1,"tree_best"]
   model_output_reg[1,"tree_1"]
@@ -435,8 +437,6 @@ if(T) {
                                 tableName = "lm")
     
     trees_df_lm  %>%
-      # not strictly needed here now as this is also done in sql_to_excel 
-      transmute(rule = str_replace_all(instruction, "\\d+\\.\\d+", function(x) as.character(round(as.numeric(x), 2)))) %>%
       openxlsx::writeDataTable( wb = output_wb,
                                 sheet = "lmRules",
                                 x = .,
@@ -458,8 +458,6 @@ if(T) {
                                 tableName = "classification")
     
     trees_df_clas  %>%
-      # not strictly needed here now as this is also done in sql_to_excel 
-      transmute(rule = str_replace_all(instruction, "\\d+\\.\\d+", function(x) as.character(round(as.numeric(x), 2)))) %>%
       openxlsx::writeDataTable( wb = output_wb,
                                 sheet = "classificationRules",
                                 x = .,
@@ -470,7 +468,7 @@ if(T) {
   }
   
   # regression tree ----
-  if(F) {
+  if(T) {
     model_output_reg %>%
       openxlsx::writeDataTable( wb = output_wb,
                                 sheet = "regression",
@@ -481,8 +479,6 @@ if(T) {
                                 tableName = "regression")
   }
   trees_df_reg  %>%
-    # not strictly needed here now as this is also done in sql_to_excel 
-    transmute(rule = str_replace_all(instruction, "\\d+\\.\\d+", function(x) as.character(round(as.numeric(x), 2)))) %>%
     openxlsx::writeDataTable( wb = output_wb,
                               sheet = "regressionRules",
                               x = .,
