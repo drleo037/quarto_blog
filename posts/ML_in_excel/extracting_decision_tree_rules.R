@@ -7,107 +7,9 @@ library(tidyverse)
 library(tidypredict)
 library(ranger)
 library(tidymodels)
-
+source(here::here("posts/ML_in_excel/ml_excel_functions.R"))
 ntrees = 300
 
-# thanks here to: https://stackoverflow.com/questions/45579287/r-assign-class-using-mutate
-add.formula <- function(x) {class(x) <- c(class(x), "formula"); x}
-
-augment_df_with_rules <- function(right_way_in, in_df, method = "classification") {
-  # were' going to insert a few stats cols after the input data so
-  # the start of the trees will be at this column:
-  trg_col <- LETTERS[ncol(in_df)] # TODO
-  mod_col <- LETTERS[ncol(in_df)+1] # TODO
-  x <- LETTERS[ncol(in_df)+4]
-  
-  result_df <- in_df %>%
-    as_tibble() %>%
-    bind_cols(right_way_in)
-
-  if(method == "classification") {
-    result_df <- result_df %>%
-      mutate(tree_best = glue::glue("=INDEX({x}[ROW_NUM]:SN[ROW_NUM], MODE(MATCH({x}[ROW_NUM]:SN[ROW_NUM], {x}[ROW_NUM]:SN[ROW_NUM], 0 )))"), .before = tree_1) %>% # TODO make generic, not just row [ROW_NUM]
-      mutate(tree_confidence = glue::glue("=COUNTIF({x}[ROW_NUM]:SN[ROW_NUM], E[ROW_NUM]) / COUNTA({x}[ROW_NUM]:SN[ROW_NUM])"), .before = tree_1) %>%
-      mutate(tree_match = glue::glue("={mod_col}[ROW_NUM]={trg_col}[ROW_NUM]"), .before = tree_1)
-  } else {
-    result_df <- result_df %>%
-      mutate(tree_best = glue::glue("=AVERAGE({x}[ROW_NUM]:SN[ROW_NUM])"), .before = tree_1) %>% # TODO make generic, not just row [ROW_NUM]
-      mutate(tree_confidence = glue::glue("=1-SQRT(VAR({x}[ROW_NUM]:SN[ROW_NUM], E[ROW_NUM])) / AVERAGE({x}[ROW_NUM]:SN[ROW_NUM])"), .before = tree_1) %>%
-      mutate(tree_match = glue::glue("=({mod_col}[ROW_NUM]-{trg_col}[ROW_NUM])/{trg_col}[ROW_NUM]"), .before = tree_1)
-  }
-  
-  result_df <- result_df %>%
-    mutate(row_num = as.character(row_number()+1)) %>% # +1 because in excel there's a title in row 1
-    mutate_at(vars(starts_with("tree")), list(~ str_replace_all(., "\\[ROW_NUM\\]", row_num))) %>%
-    mutate_at(vars(starts_with("tree")), add.formula) %>%
-    select(-row_num)
-
-    return(result_df)
-}
-
-
-# function to process the format returned by tidypredict_sql into excel
-# sql_to_excel ----
-sql_to_excel <- function(trees_df, input_df, n_sf = 1, squishit = F) {
-  replacements <- names(input_df) %>%
-    tolower() %>%
-    enframe(name = NULL, value = "word") %>%
-    mutate(col_letter = paste0(LETTERS[row_number()], "[ROW_NUM]"))
-  
-  wrong_way_clas_a <- trees_df %>%
-    mutate(instruction = str_replace_all(instruction, "AND", ",")) %>%
-    mutate(instruction = str_replace_all(instruction, "CASE\nWHEN", "=IF(AND")) %>%
-    mutate(n_parts = str_count(instruction, "\n"), .before = instruction) %>%
-    mutate(instruction = str_replace_all(instruction, "WHEN", ", IF(AND")) %>%
-    mutate(instruction = str_replace_all(instruction, "THEN", ", ")) %>%
-    mutate(instruction = str_replace_all(instruction, "END", ", 'SHOULDNTHAPPEN'")) %>%
-    #  mutate(instruction = str_replace_all(instruction, "\n", ", ")) %>%
-    mutate(end = str_pad(string = "", width = n_parts, side = "right", pad = ")"), .after = n_parts) %>%
-    mutate(output = paste0(instruction, end)) %>%
-    mutate(output = str_replace_all(output, "'", '"')) %>%
-    mutate(output = str_squish(output))
-  
-  # limit to a certain number of significant figures
-  if(exists("n_sf")) {
-    wrong_way_clas_a <- wrong_way_clas_a  %>%
-      mutate(output = str_replace_all(output, "\\d+\\.\\d+", function(x) as.character(round(as.numeric(x), n_sf))))
-  }
-  
-  if(squishit) {
-    wrong_way_clas_a <- wrong_way_clas_a  %>%
-      mutate(output = str_replace_all(output, " ", ""))
-  }
-    
-
-  library(tidytext)
-  wrong_way_clas <- wrong_way_clas_a %>%
-    mutate(rule_n = row_number()) %>%
-    # unpack so we can get the variables
-    unnest_tokens(word, output, token = "regex", pattern = "`") %>%
-    select(rule_n, word) %>%
-    # do a lookup find&replace using left_join
-    left_join(replacements) %>%
-    mutate(new_word = coalesce(col_letter, word)) %>%
-    # repack into whole functions
-    group_by(rule_n) %>%
-    summarise(output = paste0(new_word, collapse = '')) %>%
-    select(output) %>%
-    mutate(tree_number = row_number(), .before = output)
-  
-  #| transpose (flip) the array so that
-  #| the equations are in columns rather than rows
-  right_way_clas <- wrong_way_clas %>%
-    mutate(tree_number = paste0("tree_", tree_number)) %>%
-    #  head(20) %>%
-    gather(key = var_name, value = value, 2:ncol(wrong_way_clas)) %>% 
-    spread(key = names(wrong_way_clas)[1],value = 'value') %>%
-    select(-var_name)
-  
-  return(right_way_clas)
-} 
-#usage:
-# theRes <- sql_to_excel(trees_df_clas, iris)
-# theRes["tree_1"]
 
 # classification ----
 if(T) {
@@ -232,18 +134,27 @@ if(T) {
 }
 
 
-# lm ---
-if(F) {
+# lm ----
+if(T) {
   message("Building LM example...")
   
-  model <- lm(mpg ~ wt + am + cyl, data = mtcars)
-  model <- lm(total_load_actual ~ ., data = reg_df)
+  model_lm <- lm(mpg ~ wt + am + cyl, data = mtcars)
+  model_lm <- lm(total_load_actual ~ ., data = reg_df)
   
   # this emulates SQL (will come in handy when getting it into excel)
-  tidypredict_sql(model, dbplyr::simulate_dbi())
+  trees_df_lm <- tidypredict_sql(model_lm, dbplyr::simulate_dbi()) %>%
+    tibble::enframe(name = NULL, value = "instruction") %>%
+    mutate(instruction = unlist(instruction)) %>%
+    mutate(instruction = as.character(instruction))
+  
+  # this emulates SQL (will come in handy when getting it into excel)
+  trees_df_lm <- tidypredict_fit(model_lm)[2] %>% as.character() %>%
+    tibble::enframe(name = NULL, value = "instruction") %>%
+    mutate(instruction = unlist(instruction)) %>%
+    mutate(instruction = as.character(instruction))
   
   # the output of this:
-  tidypredict_fit(model)
+  tidypredict_fit(model_lm)
   
   # can be used directly in R
   reg_df %>%
@@ -264,11 +175,17 @@ if(F) {
     ggplot(aes(total_load_actual, total_load_forecast)) +
     geom_point(color = 'red')
   
-  broom::tidy(model)
-  broom::augment(model) %>%
+  broom::tidy(model_lm)
+  broom::augment(model_lm) %>%
     rename(total_load_forecast = .fitted) %>%
     ggplot(aes(total_load_actual, total_load_forecast)) +
     geom_point(color = 'green')
+  
+lm_excel <- sql_to_excel(trees_df = trees_df_lm, input_df = reg_df, n_sf = 1, squishit = T)
+
+model_output_lm <- augment_df_with_rules(lm_excel, reg_df %>% sample_n(140), method = "regession")
+
+
   message("Finished building LM example.")
 }
 
@@ -445,10 +362,9 @@ if(T) {
       tibble::enframe(name = NULL, value = "instruction") %>%
       mutate(instruction = unlist(instruction)) 
     tictoc::toc()
-    saveRDS(trees_df_reg, file = "trees_df_reg.Rds")
-    
+    saveRDS(trees_df_reg, file = here::here("posts/ML_in_excel/trees_df_reg.Rds"))
   } else {
-    trees_df_reg = readRDS("trees_df_reg.Rds")
+    trees_df_reg = readRDS(here::here("posts/ML_in_excel/trees_df_reg.Rds"))
   }
   
   if(F) {
@@ -478,15 +394,17 @@ if(T) {
   message("Finished building regression example.")
 }
 
-#| write a spreadsheet holding the model
+#| write a spreadsheet holding the model-----
 if(T) {
   message("Creating excel workbook...")  
   output_wb <- openxlsx::createWorkbook(creator = "Leo Kiernan", subject = paste0("Ranger random forest model ", lubridate::now()))
   openxlsx::addWorksheet(output_wb, "README", tabColour = "blue")
+  openxlsx::addWorksheet(output_wb, "lm", tabColour = "green")
+  openxlsx::addWorksheet(output_wb, "lmRules", tabColour = "green")
   openxlsx::addWorksheet(output_wb, "regression", tabColour = "red")
   openxlsx::addWorksheet(output_wb, "regressionRules", tabColour = "red")
   openxlsx::addWorksheet(output_wb, "classification", tabColour = "orange")
-  
+  openxlsx::addWorksheet(output_wb, "classificationRules", tabColour = "orange")
   
   message("Populating excel workbook...")  
   
@@ -505,24 +423,63 @@ if(T) {
                               tableStyle = "TableStyleLight9",
                               tableName = "README")
   
-  model_output_clas %>%
-    openxlsx::writeDataTable( wb = output_wb,
-                              sheet = "classification",
-                              x = .,
-                              startCol = 1,
-                              startRow = 1,
-                              tableStyle = "TableStyleLight9",
-                              tableName = "classification")
+  # lm ----
+  if(T) {
+    model_output_lm %>%
+      openxlsx::writeDataTable( wb = output_wb,
+                                sheet = "lm",
+                                x = .,
+                                startCol = 1,
+                                startRow = 1,
+                                tableStyle = "TableStyleLight9",
+                                tableName = "lm")
+    
+    trees_df_lm  %>%
+      # not strictly needed here now as this is also done in sql_to_excel 
+      transmute(rule = str_replace_all(instruction, "\\d+\\.\\d+", function(x) as.character(round(as.numeric(x), 2)))) %>%
+      openxlsx::writeDataTable( wb = output_wb,
+                                sheet = "lmRules",
+                                x = .,
+                                startCol = 1,
+                                startRow = 1,
+                                tableStyle = "TableStyleLight9",
+                                tableName = "lmRules")
+  }
   
-  model_output_reg %>%
-    openxlsx::writeDataTable( wb = output_wb,
-                              sheet = "regression",
-                              x = .,
-                              startCol = 1,
-                              startRow = 1,
-                              tableStyle = "TableStyleLight9",
-                              tableName = "regression")
+  # classification tree ----
+  if(T) {
+    model_output_clas %>%
+      openxlsx::writeDataTable( wb = output_wb,
+                                sheet = "classification",
+                                x = .,
+                                startCol = 1,
+                                startRow = 1,
+                                tableStyle = "TableStyleLight9",
+                                tableName = "classification")
+    
+    trees_df_clas  %>%
+      # not strictly needed here now as this is also done in sql_to_excel 
+      transmute(rule = str_replace_all(instruction, "\\d+\\.\\d+", function(x) as.character(round(as.numeric(x), 2)))) %>%
+      openxlsx::writeDataTable( wb = output_wb,
+                                sheet = "classificationRules",
+                                x = .,
+                                startCol = 1,
+                                startRow = 1,
+                                tableStyle = "TableStyleLight9",
+                                tableName = "classificationRules")
+  }
   
+  # regression tree ----
+  if(F) {
+    model_output_reg %>%
+      openxlsx::writeDataTable( wb = output_wb,
+                                sheet = "regression",
+                                x = .,
+                                startCol = 1,
+                                startRow = 1,
+                                tableStyle = "TableStyleLight9",
+                                tableName = "regression")
+  }
   trees_df_reg  %>%
     # not strictly needed here now as this is also done in sql_to_excel 
     transmute(rule = str_replace_all(instruction, "\\d+\\.\\d+", function(x) as.character(round(as.numeric(x), 2)))) %>%
@@ -537,7 +494,7 @@ if(T) {
   
   message("Saving excel workbook...")  
   openxlsx::saveWorkbook(wb = output_wb,
-                         file = stringr::str_c("testing_", Sys.Date(), ".xlsx"),
+                         file = here::here(stringr::str_c("posts/ML_in_excel/", "testing_", Sys.Date(), ".xlsx")),
                          overwrite = T)
   
   message("Done")
