@@ -16,17 +16,17 @@ ntrees <- 300 #  we're building 300 trees in the random forests
 # iris_n_noise ----
 # create (augment) the dataset we'll be using through this piece
 str(iris)
+glimpse(iris)
 levels(iris$Species)
 iris_n_noise <- iris %>%
-  # as_tibble() %>%
-  # mutate(Species = fct_relevel(Species, c("setosa", "versicolor", "virginica"))) %>%
-#  mutate(Species = as.character(Species)) %>%
+  as_tibble() %>%
+  mutate(Species = fct_relevel(Species, c("setosa", "versicolor", "virginica"))) %>%
+  mutate(Species = as.integer(Species)) %>%
   add_column (Noise = runif (nrow (.))) %>%
   add_column (other_noise = runif (nrow (.))) %>%
   mutate(Noisy.Sepal.Length = Sepal.Length + 10.0*other_noise) %>%
   select(-other_noise)
 
-iris_n_noise <- iris
 levels(iris_n_noise$Species)
 # exploration of the dataset preliminary EDA ----
 if(F) {
@@ -173,11 +173,11 @@ if(T) {
 }
 
 # load the electricity demand data ----
-if(F) {
+if(T) {
   message("Loading electricity demand data...")
   # load some data
   source("C:/Users/leoki/CODE/R-Home/blog_pending/posts/weather_plots/0. prepare_weather_df.R", local = TRUE)
-  reg_df <- joint_df %>%
+  elec_reg_df <- joint_df %>%
     select(-c(date, season, day_of_week, Monthly, Daily, Yearly)) %>%
     mutate(month = as.character(month)) %>%
     relocate(total_load_actual, .after = last_col())
@@ -255,6 +255,56 @@ if(F) {
     tibble::enframe(name = NULL, value = "instruction") %>%
     mutate(instruction = unlist(instruction))
   tictoc::toc()
+}
+
+# random forest electricity ----
+if(T) {
+  elec_reg_df
+  # I'm forcing Species to characher as there seems to be a bug on the levels for extract_fit
+  # this means that ranges will fall over (it wants factors)
+  message("Building classification example just using ranger...")
+  model_elec_reg <- ranger(total_load_actual ~ ., # we're modelling Species as a function of everything
+                       data = elec_reg_df, # modelling data held in iris_n_noise
+                       num.trees = 2,
+                       importance = "impurity" # I've added the optional impurity so I check variable importance later
+  )
+  message("how good is the model?")
+  pred.elec <- predict(model_elec_reg, data = elec_reg_df)
+  bind_cols(elec_reg_df$total_load_actual, pred.elec$predictions) %>%
+    rename(actual = ...1, pred = ...2) %>%
+  ggplot(aes(actual, pred)) +
+    geom_point() +
+    stat_regline_equation(aes(label =  paste(after_stat(eq.label), after_stat(adj.rr.label), sep = "~~~~"))) + 
+    geom_smooth(method = "lm") +
+    geom_abline(slope = 1, intercept = 0)
+  
+  
+  message("inspect the variable importance")
+  #  the importance is here: model_clas$variable.importance
+  model_elec_reg %>% 
+    vip::vip(num_features = 20,  aesthetics = list(color = "grey50", fill = "lightblue"))
+  
+  # random forest regression in excel format ----
+  # get the rules
+  tictoc::tic()
+  tidypredict::tidypredict_fit(model_elec_reg)[2]
+  trees_df_elec_reg <- tidypredict::tidypredict_sql(model_elec_reg, dbplyr::simulate_dbi()) %>%
+    tibble::enframe(name = NULL, value = "instruction") %>%
+    mutate(instruction = unlist(instruction)) 
+  tictoc::toc()
+  # convert the rules to excel format 
+  randforest_elec_reg <- sql_to_excel(trees_df = trees_df_elec_reg, input_df = elec_reg_df)
+  dim(randforest_elec_reg) #one row but many columns (one per tree)
+  model_output_elec_reg <- augment_df_with_rules(models = randforest_elec_reg,
+                                                 in_df = elec_reg_df %>% head(10),
+                                                 target = "total_load_actual",
+                                                 method = "regression")
+  
+  dim(model_output_elec_reg) # many rows (one per example) and many columns (one per tree)
+  model_output_elec_reg[1,]$tree_best
+  model_output_elec_reg[1,]$tree_confidence
+  model_output_elec_reg[1,]$tree_match
+  
 }
 
 # random forest regression for iris ----
