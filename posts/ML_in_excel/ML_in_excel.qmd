@@ -11,6 +11,37 @@ format:
 categories: [code, analysis, excel, ML, AI, LM, randomForests, classification, regression]
 ---
 
+delme
+
+```{r}
+library(tidyverse)
+data_df <- iris
+iris_n_noise <- iris %>%
+  as_tibble() %>%
+  add_column (Noise = runif (nrow (.))) %>%
+  add_column (other_noise = runif (nrow (.))) %>%
+  mutate(Noisy.Sepal.Length = Sepal.Length + 10.0*other_noise) %>%
+  select(-other_noise)
+# data_df <- iris_n_noise
+
+df_split <- rsample::initial_split(data_df) # note: stratify by Species
+df_train <- rsample::training(df_split)
+df_test  <- rsample::testing(df_split)
+data_df  <- df_train
+
+model_clas <- ranger::ranger(Species ~ ., 
+                     data = data_df,
+                     num.trees = 2,
+                     importance = "impurity"
+)
+as.character(tidypredict::tidypredict_fit(model_clas)[1]) # DPLYR
+
+pred.iris <- predict(model_clas, data = data_df)
+table(data_df$Species, pred.iris$predictions)
+
+levels(iris$Species) == levels(data_df$Species)
+```
+
 # Overview
 
 Can you access Machine Learning in Excel? Read on, this post is dedicated to finding out! On route I hope to demystify some of the most popular and powerful Machine Learning methods of recent years and end up with something that anyone with access to a spreadsheet can use for regression or classification tasks (just so long as they're not too big).
@@ -88,12 +119,6 @@ As ever, before I get started I'm going to load some libraries that I'll be usin
 ```{r load libraries, warning=FALSE, message=FALSE}
 library(magrittr)
 library(tidyverse)
-library(tidypredict)
-library(tidymodels)
-library(rsample)
-library(parsnip)
-library(recipes)
-library(ranger)
 ```
 
 ## Introducing the dataset I'll be using throughout
@@ -128,7 +153,6 @@ In some ways, the iris dataset is a little too clean to highlight anything inter
 # iris_n_noise ----
 # create (augment) the dataset we'll be using through this piece
 iris_n_noise <- iris %>%
-  as_tibble() %>%
   add_column (Noise = runif (nrow (.))) %>%
   add_column (other_noise = runif (nrow (.))) %>%
   mutate(Noisy.Sepal.Length = Sepal.Length + 10.0*other_noise) %>%
@@ -136,16 +160,16 @@ iris_n_noise <- iris %>%
 
 ```
 
-Let's have a quick look at the resultant dataset on which I'll be using. The plots below may be overwhelming to start with but they are really useful. I've deliberately asked for data for different species to be plotted in differnent colours to help interpret the data as one of the things we're going to want to do is to classify species. I'll interpret them once I've plotted them.
+Let's have a quick look at the resultant dataset on which I'll be using. The plots below may be overwhelming to start with but they are really useful. I've deliberately asked for data for different species to be plotted in different colours to help interpret the data as one of the things we're going to want to do is to classify species. I'll interpret them once I've plotted them.
 
 ```{r,  generate pairs plots of the augmented iris dataset, warning=FALSE, message=FALSE}
 GGally::ggpairs(iris_n_noise, mapping = aes(color = Species))
 ```
 
-There's a lot in this plot but in essence it compares each column against all other columns and presents the results in a couple of different ways. There's deinsity plots on the diagonal, scatterplots below the diagonal and other useful stats above the diagonal. I'll focus on the sub-plots that are most illustrative for the classification / regression problems:
+There's a lot in this plot but in essence it compares each column against all other columns and presents the results in a couple of different ways. There's density plots on the diagonal, scatter-0plots below the diagonal and other useful statistics above the diagonal. I'll focus on the sub-plots that are most illustrative for the classification / regression problems:
 
--   **Guess the (classification of) Species:** The plots are coloured by the things we're trying to classify (Species). Red represents all "Setosa" plants, green are "versicolor", and blue are "verginica". The colouring makes it easy for us humans to find some goods ways to classify species based on other measurements. Looking at the plots along the row labelled Species, we can see ho species relates to the other variables. moving from left-to-right... The blue red and green visuals in "Sepal length" and "Sepal.Width" columns overlap horizontally showing that sometimes the various species have similar values for each. The "Petal" dimensions are much more different between the species. this means that knowing (for example) the "Petal.Length" tells you more about the species than (say) the "Sepal.Length". The last two columns ("Noise" and "Noisy.Sepal.Length") show reg green and blue plots overlapping which means that (as expected) knowing these values tells us almost nothing about the Species of the iris.
--   Estimating (regressing onto) the Length of petals: Regression relies on there being a clean relationship between one thing an another. So in this case we're looking for plots where the data is nicely spread along some kind of line or curve. Given a certain value of some other variable you can can look-up with reasonable confidence the length of the iris' petals. If you look at the scatterplot on the column "Petal.Length" and row "Petal.Width" you can see the points lie nicely on a diagonal. this means that Petal.Width is probably a good things to use in regression model of Petal.Length. Contrast this with the the plot relating "Petal.Length" with "Noise". The points are all jumbled about, there's no line or curve whatsoever, so knowing the value of "Noise" can tells us very little about the Petal.Length. Any regression models should rely on Petal.Width considerably more than "Noise".
+-   **Guess the (classification of) Species:** The plots are coloured by the things we're trying to classify (Species). Red represents all "Setosa" plants, green are "Versicolor", and blue are "Virginica". The colouring makes it easy for us humans to find some goods ways to classify species based on other measurements. Looking at the plots along the row labelled Species, we can see ho species relates to the other variables. moving from left-to-right... The blue red and green visuals in "Sepal.Length" and "Sepal.Width" columns overlap horizontally showing that sometimes the various species have similar values for each. The "Petal" dimensions are much more different between the species. this means that knowing (for example) the "Petal.Length" tells you more about the species than (say) the "Sepal.Length". The last two columns ("Noise" and "Noisy.Sepal.Length") show reg green and blue plots overlapping which means that (as expected) knowing these values tells us almost nothing about the Species of the iris.
+-   Estimating (regressing onto) the Length of petals: Regression relies on there being a clean relationship between one thing an another. So in this case we're looking for plots where the data is nicely spread along some kind of line or curve. Given a certain value of some other variable you can can look-up with reasonable confidence the length of the iris' petals. If you look at the scatter-plot on the column "Petal.Length" and row "Petal.Width" you can see the points lie nicely on a diagonal. this means that Petal.Width is probably a good things to use in regression model of Petal.Length. Contrast this with the the plot relating "Petal.Length" with "Noise". The points are all jumbled about, there's no line or curve whatsoever, so knowing the value of "Noise" can tells us very little about the Petal.Length. Any regression models should rely on Petal.Width considerably more than "Noise".
 
 # Machine Learning and Excel
 
@@ -153,7 +177,7 @@ We're going to take the following steps to create Machine Learning models in Exc
 
 1.  Build the ML model (I'm using R, but you could do this just as easily in Python)
 
-2.  trasnlate the model into excel-friendly syntax
+2.  translate the model into excel-friendly syntax
 
 3.  Embed the model in Excel.
 
@@ -173,23 +197,23 @@ The ML community has come up with many ways to ensure that these super-powerful 
 
 [^4]: complexity penalty functions, regularisation bootstrapping, (n-fold) cross validation are just a few
 
--   A training dataset: As there name implies, the training dataset is used to train the ML model. sometimes the training data is further split into training and validation. Where the former is used to defined the parameters of the model and the latter is held-out to check the model. The validation sets are used to stop the model "overfitting" (memorising) the input/output relationships of the training data and having little or no generalisability when presented with new data. Think of a student revising for a maths exam... They could learn the answer for some question (by rote) or the way in which the answer can be calculated. When we ask a ML system to learn something from data, more-often than not, we'd like to to capture some underlying relationship rather than be some look-up table.
+-   A training dataset: As there name implies, the training dataset is used to train the ML model. sometimes the training data is further split into training and validation. Where the former is used to defined the parameters of the model and the latter is held-out to check the model. The validation sets are used to stop the model "over fitting" (memorising) the input/output relationships of the training data and having little or no generalisability when presented with new data. Think of a student revising for a maths exam... They could learn the answer for some question (by rote) or the way in which the answer can be calculated. When we ask a ML system to learn something from data, more-often than not, we'd like to to capture some underlying relationship rather than be some look-up table.
 
 -   A test dataset: The test dataset is withheld from the ML model so that the model's performance in general can be assessed. note: that validation dataset I mentioned in the training bullet above is analogous to this but *is* made available to the model when defining it's parameters.
 
 So in this (folded) bit of code I'm splitting the dataset (roughly two-thirds, one-third) into training and test datasets. I'll use the former to train the models. the latter to test if the models should be any good on genuinely unseen data.
 
 ```{r keep a small section (about 30% of the iris data back to objectively see if the models are any good)}
-  df_split <- initial_split(iris_n_noise) # note: stratify by Species
-  df_train <- training(df_split)
-  df_test <- testing(df_split)
+df_split <- rsample::initial_split(iris_n_noise) # note: stratify by Species
+df_train <- rsample::training(df_split)
+df_test  <- rsample::testing(df_split)
 ```
 
-As described earlier. random forests are made up of a (defined) set of decision trees. There are a few things we have control over when we're creating the forests. The most fundamental is to choose the number of trees in the forest. In this example I'm choosing to have 300 trees. There are objective ways to define good numbers for this and other hyper-parameters. remember we're heading for excel... eventually I want to move the trees into excel, so I don't want too many as each one will take up a column in my final spreasheet
+As described earlier. random forests are made up of a (defined) set of decision trees. There are a few things we have control over when we're creating the forests. The most fundamental is to choose the number of trees in the forest. In this example I'm choosing to have 300 trees. There are objective ways to define good numbers for this and other hyper-parameters. remember we're heading for excel... eventually I want to move the trees into excel, so I don't want too many as each one will take up a column in my final spreassheet
 
 ```{r define teh number of trees we will be considering in each forest}
-ntrees_clas_rf <- 300
-ntrees_reg_rf <- 50
+ntrees_clas_rf <- 3#00
+ntrees_reg_rf <- 5#0
 ```
 
 ## Classification
@@ -197,22 +221,23 @@ ntrees_reg_rf <- 50
 ### Building the classification model
 
 ```{r build a random foreast calssifier }
-    message("Building classification example just using ranger...")
-    model_clas <- ranger(Species ~ ., # we're modelling Species as a function of everything
-                         data = df_train, # modelling data held in iris_n_noise
-                         num.trees = ntrees_clas_rf,
-                         importance = "impurity" # I've added the optional impurity so I check variable importance later
-    )
+model_clas <- ranger::ranger(Species ~ ., # we're modelling Species as a function of everything
+                     data = df_train, # modelling data held in iris_n_noise
+                     num.trees = ntrees_clas_rf,
+                     importance = "impurity" # I've added the optional impurity so I check variable importance later
+)
+
+model_clas
     
 
 ```
 
-### evaluating the classification model
+### Evaluating the classification model
 
 We can see how good the model is by checking it's performance against that test set. In the table below the columns are the "true" species and the rows are the output of the model. it's pretty good, it gets only 2 out of 38 wrong. (about 5%). I'm sure we could do better than this, but I'm happy that this is "good enough" for use in this post and I'll move on. If you want to see how to optimise random forests, the internet is your friend, subjects to search for include class-imbalance, feature-engineering, cross-validation, hyper-parameter tuning etc.
 
 ```{r}
-pred.iris <- predict(model_clas, data = df_test)
+pred.iris <- stats::predict(model_clas, data = df_test)
 
 table(df_test$Species, pred.iris$predictions)
 ```
@@ -227,9 +252,11 @@ The ML models can be quite difficult to understand. Again, the ML community have
       vip::vip(num_features = 20,  aesthetics = list(color = "grey50", fill = "lightblue"))
 ```
 
-The variable importance plot shows that the Petal width / height are much more valuable to know when trying to classify the species of an iris than (say) sepal dimensions, and even more valuable than those noisy measurements I poked on the end of the dataset.
+The variable importance plot shows that the Petal width / height are much more valuable to know when trying to classify the species of an iris than (say) sepal dimensions, and even more valuable than those noisy measurements I added to the dataset which had little or no linkage with anything.
 
-**Actionable insight:** The variable importance plots are valuable both to the model builder (to sense-check that the model is doing sensible things) and for the process of data collection and duration... Why collect (potentially buy) and store the noise variable if it's not adding significant value to out decision making process\|? caveat: take case when making value decisions. I would recommend testing model performance with / without the more exotic parameters in case they are rarely used, but super-valuable for some corner case that *must* be modelled well.
+**Actionable insight:** The variable importance plots are valuable both to the model builder (to sense-check that the model is doing sensible things) and for the process of data collection and duration... Why collect (potentially buy) and store the noise variable if it is not adding significant value to out decision making process?
+
+Caveat: take care when making value decisions. I would recommend testing model performance with / without the more exotic parameters in case they are rarely used, but super-valuable for some corner case that *must* be modelled well.
 
 ### The logic in the decision trees
 
@@ -280,8 +307,6 @@ sql_to_excel <- function(trees_df, input_df, n_sf = 3, squishit = T) {
       mutate(output = str_replace_all(output, " ", ""))
   }
   
-  
-  library(tidytext)
   # we are going to swap references to the column names in R
   # with column names in excel (e.g. Sepal.Width becomes A[ROW_NUM])
   # we're adding [ROW_NUM] because later we're going to have many rows of calcs
@@ -304,7 +329,7 @@ sql_to_excel <- function(trees_df, input_df, n_sf = 3, squishit = T) {
     # make a reference to the column names...
     mutate(tree_number = row_number()) %>%
     # unpack the (wide) equation into (long) parts so we can get at the variables
-    unnest_tokens(word, output, token = "regex", pattern = "`") %>%
+    tidytext::unnest_tokens(word, output, token = "regex", pattern = "`") %>%
     # we only need a couple of the columns going forwards
     select(tree_number, word) %>%
     # do a lookup find&replace using left_join
@@ -359,7 +384,7 @@ randforest_clas$tree_1
 
 ```
 
-**We're almost there!** The process of fitting Machine Learning models and praparing them to be used inside Excel is starting to come together. The above is the logic from just one of the 300 decision trees. Each of the other trees was trained on slightly different data and hence has captured slightly different logic, all trees are of value and must be translated and exported. When resolving different suggestings for species from different trees, the random forest algorithms can use voting methods like "most often suggested" to come up with a single final answer. If I'm to get this embedding into excel I will have to emulate that voting system too. See the section on getting the models into Excel for the rest of that story. For now I'll move on to regression.
+**We're almost there!** The process of fitting Machine Learning models and praparing them to be used inside Excel is starting to come together. The above is the logic from just one of the 300 decision trees. Each of the other trees was trained on slightly different data and hence has captured slightly different logic, all trees are of value and must be translated and exported. When resolving different suggestions for species from different trees, the random forest algorithms can use voting methods like "most often suggested" to come up with a single final answer. If I'm to get this embedding into excel I will have to emulate that voting system too. See the section on getting the models into Excel for the rest of that story. For now I'll move on to regression.
 
 ## Regression
 
@@ -410,7 +435,7 @@ df_test %>%
   as_tibble() %>%
   nest(data = everything()) %>%
   mutate(full_model = list(model_lm)) %>% 
-  mutate(full_prediction = map2(full_model, data, ~augment(.x, newdata = .y))) %>%
+  mutate(full_prediction = map2(full_model, data, ~broom::augment(.x, newdata = .y))) %>%
   unnest(full_prediction) %>%
   rename(full_prediction = .fitted) %>%
   select(Sepal.Length, Sepal.Width, Petal.Length, Petal.Width, Species, Noise, Noisy.Sepal.Length, full_prediction) %>%
@@ -419,7 +444,7 @@ df_test %>%
       as_tibble() %>%
       nest(data = everything()) %>%
       mutate(simplified_model = list(simplified_model)) %>% 
-      mutate(simplified_prediction = map2(simplified_model, data, ~augment(.x, newdata = .y))) %>%
+      mutate(simplified_prediction = map2(simplified_model, data, ~broom::augment(.x, newdata = .y))) %>%
       unnest(simplified_prediction) %>%
       rename(simplified_prediction = .fitted) %>%
       select(Sepal.Length, Sepal.Width, Petal.Length, Petal.Width, Species, Noise, Noisy.Sepal.Length, simplified_prediction)
@@ -437,7 +462,7 @@ df_test %>%
 The model can be turned into something that looks like R:
 
 ```{r}
-  tidypredict_fit(simplified_model)
+  tidypredict::tidypredict_fit(simplified_model)
 ```
 
 and translate the model into something that looks more like something Excel would recognise
@@ -481,8 +506,6 @@ fit_to_excel <- function(trees_df, input_df, n_sf = 3, squishit = T) {
       mutate(output_as_excel = "") # im adding this so I can check works been done
   }
   
-  
-  library(tidytext)
   # we are going to swap references to the column names in R
   # with column names in excel (e.g. Sepal.Width becomes A[ROW_NUM])
   # we're adding [ROW_NUM] because later we're going to have many rows of calcs
@@ -531,7 +554,7 @@ fit_to_excel <- function(trees_df, input_df, n_sf = 3, squishit = T) {
   return(equations_in_rows)
 } #
   # this emulates LM in excel format ----
-  trees_df_lm <- tidypredict_fit(model_lm)[2] %>% as.character() %>%
+  trees_df_lm <- tidypredict::tidypredict_fit(model_lm)[2] %>% as.character() %>%
     tibble::enframe(name = NULL, value = "instruction") %>%
     mutate(instruction = unlist(instruction)) %>%
     mutate(instruction = as.character(instruction))
@@ -552,11 +575,9 @@ iris_n_noise_reg <- iris_n_noise %>%
 # As before, the avoid over-fitting,  I'll split the regression dataset into training and testing datasets. First I'll split the data into two (one set is something I can use to train the model,  the other I will keep in reserve to test the model.  Then, I will build a 10-fold cross-validation dataset from training dataset. This sounds fancy, but it's just creating 10 alternative takes on the iris dataset by sampling (with replacement) from the initial one. All 10 folds contain examples drawn from the iris dataset, but each fold will contain a different mix of examples
 
 set.seed(037)
-iris_reg_split <- initial_split(iris_n_noise_reg, strata = Petal.Length)
-iris_reg_train <- training(iris_reg_split)
-iris_reg_test <- testing(iris_reg_split)
-# create 10 alternative versions of the training dataset
-(iris_reg_train_folds <- vfold_cv(iris_reg_train))
+iris_reg_split <- rsample::initial_split(iris_n_noise_reg, strata = Petal.Length)
+iris_reg_train <- rsample::training(iris_reg_split)
+iris_reg_test  <- rsample::testing(iris_reg_split)
 ```
 
 Now I can build the random forest. I could use ranger directly as follows:
@@ -564,7 +585,7 @@ Now I can build the random forest. I could use ranger directly as follows:
 ```{r decision tree regression directly using ranger}
 
 # we're modelling Species as a function of everything...
-model_reg <- ranger(Petal.Length ~ ., 
+model_reg <- ranger::ranger(Petal.Length ~ ., 
                     data = iris_reg_train, 
                     num.trees = ntrees_reg_rf,
                     # I've added the optional impurity
@@ -578,7 +599,7 @@ plot the model's performance:
 
 ```{r scatterplot of simple ranger model }
 # then do a quick check on teh output
-pred.iris <- predict(model_reg, data = iris_reg_test)
+pred.iris <- stats::predict(model_reg, data = iris_reg_test)
 bind_cols(iris_reg_test$Petal.Length, pred.iris$predictions) %>%
   rename(actual = ...1, pred = ...2) %>%
   ggplot(aes(actual, pred)) +
@@ -606,7 +627,7 @@ tidypredict::tidypredict_sql(model_reg, dbplyr::simulate_dbi())[1]
 
 ## Getting the models into Excel
 
-### a couple of utility functions
+### A couple of utility functions
 
 ```{r  utlility functions to help reformat teh RF rules and add them to df}
 
@@ -679,7 +700,6 @@ sql_to_excel <- function(trees_df, input_df, n_sf = 3, squishit = T) {
   }
   
   
-  library(tidytext)
   # we are going to swap references to the column names in R
   # with column names in excel (e.g. Sepal.Width becomes A[ROW_NUM])
   # we're adding [ROW_NUM] because later we're going to have many rows of calcs
@@ -702,7 +722,7 @@ sql_to_excel <- function(trees_df, input_df, n_sf = 3, squishit = T) {
     # make a reference to the column names...
     mutate(tree_number = row_number()) %>%
     # unpack the (wide) equation into (long) parts so we can get at the variables
-    unnest_tokens(word, output, token = "regex", pattern = "`") %>%
+    tidytext::unnest_tokens(word, output, token = "regex", pattern = "`") %>%
     # we only need a couple of the columns going forwards
     select(tree_number, word) %>%
     # do a lookup find&replace using left_join
@@ -805,17 +825,15 @@ augment_df_with_rules <- function(models, in_df, target = NA, method = "classifi
 
 ### preparing the models for export to excel
 
-```{r prepping the models to be undersatndable in excel }
+```{r prepping the models to be understandable in excel }
 
   #| turn the tidypredict_sql for all the trees into a tidy dataframe
 
   #| random forest classification in excel format ----
-  tictoc::tic()
   trees_df_clas <- tidypredict::tidypredict_sql(model_clas, dbplyr::simulate_dbi()) %>%
     tibble::enframe(name = NULL, value = "instruction") %>%
     mutate(instruction = unlist(instruction))
-  tictoc::toc()
-  
+
   randforest_clas <- sql_to_excel(trees_df = trees_df_clas, input_df = iris_n_noise)
   model_output_clas <- augment_df_with_rules(models = randforest_clas,
                                              in_df = iris_n_noise,
@@ -825,7 +843,7 @@ augment_df_with_rules <- function(models, in_df, target = NA, method = "classifi
   model_output_clas[1,"tree_1"]
 
   # this emulates LM in excel format ----
-  trees_df_lm <- tidypredict_fit(model_lm)[2] %>% as.character() %>%
+  trees_df_lm <- tidypredict::tidypredict_fit(model_lm)[2] %>% as.character() %>%
     tibble::enframe(name = NULL, value = "instruction") %>%
     mutate(instruction = unlist(instruction)) %>%
     mutate(instruction = as.character(instruction))
@@ -982,7 +1000,7 @@ dfg
 
 This section is about tuning hyper-parameters to get the best out of random Forests (or other ML techniques)
 
-Spoler alert: The regession task using the iris dataset seems to be simple enough to make even an untuned random forest quite good. The tuned models output at the end of this section isnt really better than the one that I "threw together" in the main body of this post. **However** in general it is well worth exploring the impact of the chjoice of hyper-parameters.
+Spoiler alert: The regression task using the iris dataset seems to be simple enough to make even an un-tuned random forest quite good. The tuned models output at the end of this section is not really better than the one that I "threw together" in the main body of this post. **However** in general it is well worth exploring the impact of the choice of hyper-parameters.
 
 Instead of directly using ranger in regression, I'm going to take a lead from [Julia Silge's post on tuning random forests](https://juliasilge.com/blog/sf-trees-random-tuning/) and use ranger indirectly inside another great package than is well worth exploring if you want to mode in R. It's called "tidymodels" and has a number of benefits including:
 
@@ -1000,6 +1018,14 @@ I'll be using tidy models to do some "hyper-parameter" tuning. Tuning the follow
 
 -   trees: The number of trees contained in the ensemble. Note: I'm deliberately not tuning this in the post and fixing this to 50 in the example as the trees can be quite large.
 
+```{r load extra libraries}
+
+library(tidypredict)
+library(tidymodels)
+library(parsnip)
+library(recipes)
+```
+
 ```{r run many models to explore the hyper-paramenter search space}
 #
 #| I want to run these models on as many cores as possible
@@ -1013,6 +1039,9 @@ cores <- parallel::detectCores()
 #| Note: these may well be the same number if nothing el;se is running
 # cores <- parallelly::availableCores()
 # message(glue::glue("Running in parallel on {cores} availableCores rather than {parallel::detectCores()} detectCores"))
+
+# INITIALISE: create 10 alternative versions of the training dataset
+(iris_reg_train_folds <- rsample::vfold_cv(iris_reg_train))
 
 # part 1: building data transformation pipeline (minimal)
 rf_recipe <-recipe(Petal.Length ~ ., data = iris_reg_train)
