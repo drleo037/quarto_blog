@@ -19,7 +19,9 @@ Can you access Machine Learning in Excel[^1]? Read on, this post is dedicated to
 
 [^2]: See the discussion section for mode on these points
 
-In truth, this post was inspired by the following meme:
+If you're impatient and want to see the spreadsheet generated in this post you can [open this link](https://github.com/drleo037/quarto_blog/blob/main/posts/ML_in_excel/ml_in_excel.xlsx) and press the "download" button.
+
+In all truth, this post was inspired by the following meme:
 
 ![](/posts/ML_in_excel/AI_ifthen.jpg)
 
@@ -29,13 +31,13 @@ This image makes me laugh for many reasons.
 
 -   On the other hand, the image summarises a considerable branch of AI and ML. You will find IF-THEN rules in some of the earliest and most recent forms of AI. They underpinned the Expert Systems that emerged in the 1970 and still underpin some of the most successful recent forms of ML.
 
-It's the simplicity and practical clarity that is lovingly mocked in the meme that has allowed the humble "IF THEN" to have survived for 50 years in a technical field that is so fluid.
+It's the simplicity and practical clarity that is lovingly mocked in the meme that has allowed the humble "IF THEN" to have survived for 50 years in a technical field that is so dynamic.
 
 OK, so history tells us that IF-THEN *is* a credible tool for AI and ML. The Microsoft documentation says that Excel has an IF (this, then-that, otherwise-the-other). So **the door is open**! Note: Excel also has many other logic manipulation functions that I'm not going to touch here but are worth noting, like SWITCH, CHOOSE, and the invaluable and overly used LOOKUP family and INDEX+MATCH). It also has some very powerful ways to search for solutions. If you're not aware, I encourage you to search "goal seek" and "solver" add-ins (bundled with Excel). These are underpinned by powerful generalised gradient descent algorithms and can answer all sorts of business questions right out of the box through a form of "learning" also known as fitting, calibration, solving and optimising.
 
 ## Introducing some ML concepts
 
-Before getting too technical, I'd like to introduce some of the terms I'll rely on in this post. If you're already verse in decision trees and random forests feel free to skip. If you're genuinely interested in how they work please dig deeper than my description here, I'm just trying to get some big-picture concepts in place as context for the rest of this post.
+Before getting too technical, I'd like to introduce some of the terms I'll rely on in this post. If you're already versed in decision trees and random forests feel free to skip. If you're genuinely interested in how they work please dig deeper than my description here, I'm just trying to get some big-picture concepts in place as context for the rest of this post.
 
 -   **Decision Trees**: Decision Trees are just a nested sequence of IF-THEN logic. They're quite intuitive. The reason why they're called decision trees is because they help you make decisions and look like trees (The logic shown in the meme show branching conditions that makes it look like a 'tree'). For example, a really small decision tree for 'going out safely' might be:
 
@@ -51,19 +53,19 @@ Before getting too technical, I'd like to introduce some of the terms I'll rely 
 
         </div>
 
-    Note: In the above example, each IF-ELSE generate '**branches**' as the decision can go two ways depending on the result. Moving along the sequence of questions moves along a specific combination of branches until there are no more questions left to answer. At this point we have tested all the conditions and we can take some action. The bits I've put in {curly brackets} are the actions. Because they are at the end of the branches they are called '**leaf**' nodes. The leaf {wear sunscreen} is the action to take IF \[it's not raining\] AND \[it's sunny\]
+    Note: In the above example, each IF-ELSE generates '**branches**' as the decision can go two ways depending on the result. Moving along the sequence of questions moves along a specific combination of branches until there are no more questions left to answer. When there are no more questions to answer we have tested all the conditions and we can take some action. I've put the actions in {curly brackets}. Because they are at the end of the branches they are called '**leaf**' nodes. The leaf {wear sunscreen} is the action to take IF \[it's not raining\] AND \[it's sunny\]
 
-    You could imagine improving this tree in many ways... You could add all sorts of logic to make the task of "going out safely" more complete (e.g. IF \[it's raining\] THEN IF{it's going to stop soon} THEN \[wait a bit\] ELSE {bring your umbrella} etc.)
+    You could imagine improving this tree in many ways: You could add all sorts of logic to make the task of "going out safely" more complete. For example: IF \[it's raining\] THEN IF{it's going to stop soon} THEN \[wait a bit\] ELSE {bring your umbrella} etc.
 
--   **Machine learning and decision trees**: It's easy for people to define rules for simple trees but not so easy for complex situations, especially those that are not based on something we already understand. ML decision trees come in to play when we have examples of desired outcomes coupled to evidence upon which an outcome can be based. The magic that has been brought by the ML community is *how* to build decisions trees under these circumstances. There's loads of material on this on-line. If you are interested, I would point to a great 10 minute video of a guy explaining all of this [here](https://www.youtube.com/watch?v=LDRbO9a6XPU&t=592s).
+-   **Machine learning and decision trees**: It's easy for people to define rules for simple trees but not so easy for complex situations, especially those that are not based on something we already understand. ML decision trees come in to play when we have examples of desired outcomes coupled to evidence upon which an outcome can be based. The magic that has been brought by the ML community is *how* to build decision-trees under these circumstances. There's loads of material on this on-line. If you are interested, I would point to a great 10 minute video of a guy explaining all of this [here](https://www.youtube.com/watch?v=LDRbO9a6XPU&t=592s).
 
--   **Random Forests**: At the highest level, random forests are just collections of Decision Trees. Each tree is built using the same learning rules as the next one. If you're wondering why it's useful to have many trees, it's because many trees bring with them different perspectives on the data. Often each tree is built using a sub-set of the data, either by limiting the aspects of the evidence (dimensions) or by limiting the examples (rows). Any one tree may be limited in one way or another, but by combining many trees the weaknesses of any single tree begin to diminish. It's analogous to asking for a second opinion, or in the extreme, "the wisdom of the masses". There's a good article [here](https://towardsdatascience.com/random-forests-walkthrough-why-are-they-better-than-decision-trees-22e02a28c6bd) about just that. Also some good intuition can be gathered from this [blog post](https://towardsdatascience.com/why-random-forests-outperform-decision-trees-1b0f175a0b5). Obviously, if you use random forests you may get many different answers for the same question. The ML community have also resolved this, so perhaps if you're looking for a number (i.e. you're regressing) you might chose the average (mean) of all the possible options. Or if you're looking for a label (as per the 'name the fruit' example in that you-tube video) you may chose to go with the most popular (modal) result.
+-   **Random Forests**: At the highest level, random forests are just collections of Decision Trees. Each tree is built using the same learning rules as the next one. If you're wondering why it's useful to have many trees, it's because many trees bring with them different perspectives on the data. Often each tree is built using a sub-set of the data, either by limiting the aspects of the evidence (dimensions) or by limiting the examples (rows). Any one tree may be limited in one way or another, but by combining many trees the weaknesses of any single tree begin to diminish. It's analogous to asking for a second opinion, or in the extreme, "the wisdom of the masses". There's a good article [here](https://towardsdatascience.com/random-forests-walkthrough-why-are-they-better-than-decision-trees-22e02a28c6bd) about just that. Also some good intuition can be gathered from this [blog post](https://towardsdatascience.com/why-random-forests-outperform-decision-trees-1b0f175a0b5). Obviously, if you use random forests you may get many different answers for the same question. The ML community have also resolved this, so perhaps if you're looking for a number (i.e. you're regressing) you might choose the average (mean) of all the possible options. Or if you're looking for a label (as per the 'name the fruit' example in that you-tube video) you may choose to go with the most popular (modal) result.
 
 In summary... decision trees and random-forests are strewn with IF-THEN logic and hence have the potential to be embedded into spreadsheets.
 
 ## Sanity check
 
-Pausing for a moment, before diving any further into a post that considered Machine learning and Excel...Another internet meme springs into my mind:
+Pausing for a moment, before diving any further into a post that consideres Machine learning and Excel...Another internet meme springs into my mind:
 
 ![](but_why_should_you.JPG)
 
@@ -71,25 +73,25 @@ I'm not sure I'll ever be able to answer the question "but... why?" other than b
 
 [^3]: with the usual disclaimers around 'The postings on this site are my own and do not necessarily reflect the views of \[Employer\].' etc.
 
--   That scooby-doo meme started an itch I had to scratch. Surely decision trees can be delivered in excel.
+-   That scooby-doo meme started an itch I had to scratch. Surely decision trees can be delivered in Excel.
 
 -   (personal development) The journey of trying to drop ML like random forests into Excel helps to demystify ML and brings challenges that were sufficiently non-trivial to feel worthwhile.
 
--   Finally, and probably most significantly: ML is useful and Excel is ubiquitous, they rarely overlap, is there value in bridging the gap between the two? Building bridges between the two communities may increase tolerance or reduce friction between the two. The reduction of corporate silos can lead to all sorts of innovations... Who knows, maybe ML can be delivered in Excel. Maybe Excel users will become open to alternative ways to analyse data. There is a great video that is well worth a watch exploring such things from JD Long [here](https://www.youtube.com/watch?v=CjNOSrfQiAY).
+-   Finally, and probably most significantly: ML is useful and Excel is ubiquitous, they rarely overlap, is there value in bridging the gap between the two? Building bridges between the two communities may increase understanding and hence reduce friction between the two. The reduction of corporate silos can lead to all sorts of innovations... Who knows, maybe ML can be delivered in Excel. Maybe Excel users will become open to alternative ways to analyse data. There is a great video exploring such things from JD Long [here](https://www.youtube.com/watch?v=CjNOSrfQiAY).
 
-Most of the rest of this post focusses on build ML models (for both classification and regression) and then how to get these models into excel. however I will need to build these models on *something*. so there's also a lead-in section exploring the data on which I'll be building the models. I'd recommend reading this section even though it's not directly about ML or Excel. It will give some insight into what it takes to make good classification and regression models and contextualise the content of the other sections.\
+Most of the rest of this post focusses on building ML models (for both classification and regression) and then how to get these models into Excel. However I will need to build these models on *some problem based on some data*. I'm going to be using a dataset called 'iris'. I have included a section exploring the iris data on which I'll be building the models. I'd recommend reading this section even though it's not directly about ML or Excel. It will give some insight into what it takes to make good classification and regression models and contextualise the content of the other sections.\
 
 ## Machine Learning in databases.
 
-Even though I'm preoccupied in this post with getting to the point where ML models can be executed in excel, the keen-eyed will notice that as part of the journey I will move through a stage where the ML models are available as SQL. Obviously some people would quite happily disembark at the point where ML models are available as SQL and can be deployed within the database of their choice. Furthermore, there's plenty of options that can build and deploy ML in-database without even extracting the underlying data.
+Even though I'm preoccupied in this post with getting to the point where ML models can be executed in Excel, the keen-eyed will notice that as part of the journey I will move through a stage where the ML models are available as SQL. Obviously some people would quite happily disembark at the point where ML models are available as SQL and can be deployed within the database of their choice. Furthermore, there's plenty of options that can build and deploy ML in-databases without even extracting the underlying data.
 
 ## Note: I will **not** be optimising the ML models
 
-This post is about getting ML models into spreadsheets. When building ML models there is usually ann entire phase where the models are tuned for best performance (e.g. hyper-parameter tuning to get the 'best' model form, k-fold cross validation to ensure the models are robust and able to generalise to give good answers for unseen data etc.). There are lot's of resources available on the internet if you want to know more (e.g. [Julia Silge's post on tuning random forests](https://juliasilge.com/blog/sf-trees-random-tuning/) is well worth exploring). I'm not going to be optimising the randomm forests in this post as it's really a distraction from the main thrust of the post. The models I export into Excel may not be optimal in any sense, but they will be exactly the same shape as models that have been tuned and robustly trained, so are perfectly fine to run with in this post.
+This post is about getting ML models into spreadsheets. When building ML models there is usually an entire phase where the models are tuned for best performance (e.g. hyper-parameter tuning to get the 'best' model form, k-fold cross validation to ensure the models are robust and able to generalise to give good answers for unseen data etc.). There are lot's of resources available on the internet if you want to know more (e.g. [Julia Silge's post on tuning random forests](https://juliasilge.com/blog/sf-trees-random-tuning/)). I'm not going to be optimising the random forests in this post as it's really a distraction from the main thrust of the post. The models I export into Excel may not be optimal in any sense, but they will be exactly the same shape as models that have been tuned and robustly trained, so are perfectly fine to run with in this post.
 
 # The data that I'll be modelling (optional)
 
-For this post I've chosen a dataset called "Iris". It's one of those "hello world" datasets that is small, well understood and widely available. Also, the "Iris" dataset can be used to expo ML for both regression *and* classification. The methods I'm exploring work for larger datasets (more fields and more examples). I'll make some observations on the limits of applying ML in Excel towards the end of this blog.
+For this post I've chosen a dataset called "Iris". It's one of those "hello world" datasets that is small, well understood and widely available. Also, the "Iris" dataset can be used to expo ML for both regression *and* classification. The methods I'm exploring work for larger datasets (more fields and more examples). I'll make some observations on the limits of applying ML in Excel towards the end of this post.
 
 As ever, before I get started I'm going to load some libraries that I'll be using throughout this post[^4].
 
@@ -100,7 +102,7 @@ library(magrittr)
 library(tidyverse)
 ```
 
-The "Iris" dataset contains 150 examples of measurements taken from different types of iris flower. Each row is an example of a single iris from one of three species. The dataset holds statistics on each iris such as the length and width of sepals and petal.
+The "Iris" dataset contains 150 examples of measurements taken from different types of iris flower. Each row is an example of a single iris from one of three *Species*. The dataset holds statistics on each iris such as the length and width of it's sepals and petals.
 
 The table below shows the first 5 rows of the iris dataset
 
@@ -108,23 +110,23 @@ The table below shows the first 5 rows of the iris dataset
 head(iris, 5)
 ```
 
-We can see that there are five measurements recorded for each iris (each row of the dataset). There are four numeric measurements (**length** and **width** of **sepals** and **petals**) and one categorical (factor) describing the **species** of the iris.
+Each row represents what is known about a single iris. We can see that there are five measurements recorded for each iris. There are four numeric measurements (**length** and **width** of **sepals** and **petals**) and one categorical measurement describing the **species** of the iris.
 
 I am going to do two kinds of modelling:
 
 -   **Classification**: I am going to learn how to tell the **species** of an iris based on the size of the petal and sepals[^5]
 
--   **Regression**: I'm going to learn how to estimate the **length of the petals** based on the species and other attributes.
+-   **Regression**: I'm going to learn how to estimate the **length of the petals** based on the *Species* and other attributes.
 
-[^5]: The dataset is relatively simple to feed into a classifier because the classes (species) are 'balanced' (which just means there's the same number of examples in each class). The ML community have developed plenty of ways that to handle unbalanced classes but anyone undertaking ML classification must consider this when constructing any ML solution.
+[^5]: The dataset is relatively simple to feed into a classifier because the classes (*Species*) are 'balanced' (which just means there's the same number of examples in each class). The ML community have developed plenty of ways that to handle unbalanced classes but anyone undertaking ML classification must consider this when constructing any ML solution.
 
 ## Making the data a little more interesting
 
 In some ways, the iris dataset is a little *too* clean to highlight anything interesting about the machine learning process... So I'm going to add two extra columns (measurements) to each iris to see if and how the ML algorithms decide to use these in the classification and regression tasks:
 
--   **Noise**: Noise will be entirely random, unrelated to the characteristics of each iris in any way. I'll use this as a test of the algorithms. Because the number is unrelated to the iris it should have no predictive power to help me classify species or estimate petal length, so it shouldn't be included in the decision making processes.
+-   **Noise**: *Noise* will be entirely random, unrelated to the characteristics of each iris in any way. I'll use this as a test of the algorithms. Because the value assigned to *Noise* is unrelated to the iris it should have no predictive power to help me classify *Species* or estimate petal length, so it shouldn't be included in the decision making processes.
 
--   **Noisy.Sepal.Length**: This is a *little* related to an attribute of each iris. It's like the measurement of the length of the sepal but taken in a really sloppy way where it's the true length but with a random number added or subtracted to make the measurement almost useless. This can never be as useful as the clean version of Sepal.Length, but compared to **Noise**, this measure contains *some* value.
+-   **Noisy.Sepal.Length**: This is a *little* related to an attribute of each iris. It's like the measurement of the length of the sepal but taken in a really sloppy way where it's the true length but with a random number added or subtracted to make the measurement almost useless. This can never be as valuable as the clean version of *Sepal.Length*, but compared to **Noise**, this measure contains *some* value.
 
 ```{r augment the iris dataset with some useless and nearly uesless extra columns}
 # iris_n_noise ----
@@ -137,27 +139,24 @@ iris_n_noise <- iris %>%
 
 ```
 
-Let's have a quick look at the dataset on which I'll be using. The plots below may be overwhelming to start with but they are really useful. I've deliberately asked for data for different species to be plotted in different colours to help interpret the data as one of the things we're going to want to do is to classify species. I'll interpret plots in the subsequent section.
+Let's have a quick look at the dataset that I'll be using. The plots below may be overwhelming to start with but they are really useful. I've deliberately plotted data for different *Species* in different colours to help interpret the data because one of the things we're going to want to do is to classify *Species*. I'll interpret plots in the subsequent section.
 
 ```{r,  generate pairs plots of the augmented iris dataset, warning=FALSE, message=FALSE}
 GGally::ggpairs(iris_n_noise, mapping = aes(color = Species))
 ```
 
-There's a lot in this plot but in essence it compares each column against all other columns and presents the results in a couple of different ways. There's density plots on the diagonal top-teft to bottom right. There are scatter-plots below the diagonal and other useful statistics above the diagonal. I'll focus on the sub-plots that are most illustrative for the classification / regression problems:
+There's a lot in this plot but in essence it compares each column against all other columns and presents the results in a couple of different ways. There's density plots on the diagonal top-left to bottom right. There are scatter-plots below the diagonal and other useful statistics above the diagonal. I'll focus on the sub-plots that are most illustrative for the classification / regression problems:
 
--   **Guess the (classification of) Species:** The plots are coloured by the things we're trying to classify (Species). Red represents all "Setosa" plants, green are "Versicolor", and blue are "Virginica". The colouring makes it easy for us humans to find some good ways to classify species based on other measurements. Looking at the plots along the row labelled Species, we can see ho species relates to the other variables. moving from left-to-right... The blue red and green visuals in "Sepal.Length" and "Sepal.Width" columns overlap horizontally showing that sometimes the various species have similar values for each. The "Petal" dimensions are much more different between the species. this means that knowing (for example) the "Petal.Length" tells you more about the species than (say) the "Sepal.Width". The two columns ("Noise" and "Noisy.Sepal.Length") in the bottom right of the array of plots show red green and blue plots overlapping which means that (as expected) knowing these values tells us almost nothing about the Species of the iris.
--   Estimating (regressing onto) the Length of petals: Regression relies on there being a clean relationship between one thing an another. So in this case we're looking for plots where the data is nicely spread along some kind of line or curve. Given a certain value of some other variable you can can look-up with reasonable confidence the length of the iris' petals. If you look at the scatter-plot on the column "Petal.Length" and row "Petal.Width" you can see the points lie nicely on a diagonal. this means that Petal.Width is probably a good things to use in regression model of Petal.Length. Contrast this with the the plot relating "Petal.Length" with "Noise". The points are all jumbled about, there's no line or curve whatsoever, so knowing the value of "Noise" tells us very little about the Petal.Length. Any regression models should rely on Petal.Width considerably more than "Noise".
-
+-   **Guess the (classification of) Species:** The plots are coloured by the things we're trying to classify (*Species*). Red represents all "Setosa" plants, green are "Versicolor", and blue are "Virginica". The colouring makes it easy for us humans to find some good ways to classify *Species* based on other measurements. Looking at the plots along the row labelled Species, we can see how *Species* relates to the other variables. moving from left-to-right... The blue red and green visuals in "Sepal.Length" and "Sepal.Width" columns overlap horizontally showing that sometimes the various *Species* have similar length and widths of sepals. The "Petal" dimensions are much more different between the *Species*. This means that knowing (for example) the *Petal.Length* tells you more about the *Species* than the "Sepal.Width". The two columns (*Noise* and "Noisy.Sepal.Length") in the bottom right of the array of plots show red green and blue plots overlapping which means that (as expected) knowing these values tells us almost nothing about the Species of the iris.
+-   **Estimating (regressing onto) the Length of petals:** Regression relies on there being a clean relationship between one thing an another. So in this case we're looking for plots where the data is nicely spread along some kind of line or curve. Given a certain value of some other variable you can look-up with reasonable confidence the length of the iris' petals. If you look at the scatter-plot on the column *Petal.Length* and row *Petal.Width* you can see the points lie nicely on a diagonal. This means that Petal.Width is probably a good thing to use in regression model of *Petal.Length*. This is also shown by the high correlation ("Corr: 0.963\*\*\*") in the words in the 4th columns, 3rd row. Contrast this with the the plot relating *Petal.Length* with *Noise*. The points uncorrelated (-0.036) and are all jumbled about, there's no line or curve whatsoever, so knowing the value of *Noise* tells us very little about the *Petal.Length*. Any regression models should rely on Petal.Width considerably more than *Noise*.
 
 ## Slicing the iris dataset ready for Machine Learning
 
 Machine Learning is powerful. It can generate all sorts of models encapsulating all sorts of relationships between this-and-that. That strength is also a weakness. We don't want to model *any* relationship, we want to model useful ones. As the famous statistician George Box said almost 50 years ago:
 
 > "All models are wrong but some are useful"
->
-> -   George Box, 1976
 
-The ML community has come up with many ways to ensure that these super-powerful data-driven models[^6] don't get carried away and dream up exotic relationships between this or that[^7]. I'm not going into any great detail here (and I may be cutting corners that should be cut) but all I'm going to do is to split the iris dataset into two subsets.
+The ML community has come up with many ways to ensure that these super-powerful data-driven models[^6] don't get carried away and dream up exotic relationships between this or that[^7]. I'm not going into any great detail here (and I may be cutting corners that shouldn't be cut) but all I'm going to do is to split the iris dataset into two subsets.
 
 [^6]: like random-forests, neural-networks and boosted trees etc
 
@@ -165,11 +164,11 @@ The ML community has come up with many ways to ensure that these super-powerful 
 
 -   **A training dataset:** As the name implies, the training dataset is used to train the ML model[^8].
 
--   **A test dataset**: The test dataset is withheld from the entire process of training the ML model. It can then be used to check the the model's performance in general and helps to show how the model might perform on new, unseen data. Note: that validation dataset I mentioned in the training footnote above is analogous to this but *is* made available to the model when defining its parameters.
+-   **A test dataset**: The test dataset is withheld from the entire process of training the ML model. It can then be used to check the model's performance in general and helps to show how the model might perform on new, unseen data. Note: that validation dataset I mentioned in the training footnote above is analogous to a test dataset but *is* made available to during the model training phase.
 
 [^8]: The training data is often further split into training and validation. Where the former is used to defined the parameters of the model and the latter is held-out to check how the model might perform on genuinely new data unavailable at the time when the model was trained. The validation sets are used to stop the model "over fitting" (memorising) the input/output relationships of the training data and having little or no generalisability when presented with new data. Think of a student revising for a maths exam... They could learn the answer for some question (by rote) or the way in which the answer can be calculated. When we ask a ML system to learn something from data, more-often than not, we'd like to capture some underlying relationship rather than be some look-up table.
 
-I'll split the dataset (roughly two-thirds, one-third) into training and test datasets. I'll use the former to train the models. the latter to test if the models should be any good on genuinely unseen data.
+I'll split the dataset (roughly two-thirds, one-third) into training and test datasets. I'll use the former to train the models and the latter to test if the models should be any good on genuinely unseen data.
 
 ```{r keep a small section (about 30% of the iris data back to objectively see if the models are any good)}
 df_split <- rsample::initial_split(iris_n_noise) # note: stratify by Species
@@ -177,20 +176,19 @@ df_train <- rsample::training(df_split)
 df_test  <- rsample::testing(df_split)
 ```
 
-
 # Machine Learning and Excel
 
 We're going to take the following steps to create Machine Learning models in Excel.
 
 1.  Build the ML model (I'm using R, but you could do this just as easily in Python).
 
-2.  Translate the model into excel-friendly syntax.
+2.  Translate the model into Excel-friendly syntax.
 
-3.  Embed the model in Excel.
+3.  Embed the model in an Excel spreadsheet.
 
-I hope you're not disappointed that I'm building the model outside excel and then only using the model inside excel. I guess you could do all this inside excel with the help of VBA but there are *many* more tool-sets in R and python for creating machine learning models. Playing to the strengths of each, let R or Python build the model, and let excel host the model.
+I hope you're not disappointed that I'm building the model outside Excel and then only using the model inside Excel. I guess you could do all this inside Excel with the help of VBA but there are *many* more tool-sets in R and python for creating machine learning models. Playing to the strengths of each, let R or Python build the model, and let Excel host the model.
 
-As described earlier random forests are made up of a set of decision trees. There are a few things we have control over when we're creating the forests. The most fundamental is to choose the number of trees in the forest. In this example I'm choosing to have 50 trees. There are objective ways to define good numbers for this and other hyper-parameters. Remember we're heading for excel... eventually I want to move the trees into excel, so I don't want too many as each one will take up a column in my final spreadsheet
+As described earlier random forests are made up of a set of decision trees. There are a few things we have control over when we're creating the forests. The most fundamental is to choose the number of trees in the forest. In this example I'm choosing to have 50 trees. There are objective ways to define good numbers for this and other hyper-parameters. Remember we're heading for Excel... Eventually I want to move the trees into Excel, so I don't want too many trees as each one will take up a column in my final spreadsheet
 
 ```{r define the number of trees we will be considering in each forest}
 ntrees_clas_rf <- 50
@@ -201,7 +199,7 @@ ntrees_reg_rf <- 50
 
 ## Building the classification model
 
-There are many packages in R or Python that make building random forest models very straightforward. I'm using a package called {ranger}, and it's one line of code to fit a random forest to the dataset.
+There are many packages in R or Python that make building random forest models very straightforward. I'm using an R package called {ranger}, and it's one line of code to fit a random forest to the dataset.
 
 ```{r build a random foreast calssifier }
 set.seed(37) # setting a seed helps with reproducibility
@@ -219,7 +217,7 @@ model_clas
 
 ## Evaluating the classification model
 
-We can see how good the model is by checking it's performance against that test set. In the table below the columns are the "true" species and the rows are the output of the model. it's pretty good, it gets only 2 out of 38 wrong. (about 5%). I'm sure we could do better than this, but I'm happy that this is "good enough" for use in this post and I'll move on. If you want to see how to optimise random forests, the internet is your friend, subjects to search for include class-imbalance, feature-engineering, cross-validation, hyper-parameter tuning etc.
+We can see how good the model is by checking its performance against that test set. The performance of the trained mode on unseen data is shown below. It is pretty good, it gets only 2 out of 38 wrong. (about 5%). I'm sure we could do better than this, but I'm happy that this is "good enough" for use in this post and I'll move on. If you want to see how to optimise random forests, the internet is your friend, subjects to search for include class-imbalance, feature-engineering, cross-validation, hyper-parameter tuning etc. The plot below compares the iris *Species* as labelled in the test dataset with the modelled *Species* predicted by the random forest. It shows counts of the number of times each permutation of modelled and actual *Species* has been observed in the results. The model should match the observations, so there should only be counts on teh diagonal where modelled *Species* matches observed \*Species.
 
 ```{r tabluate the confusion matrix for classification, warning=FALSE, message=FALSE}
 pred.iris <- stats::predict(model_clas, data = df_test)
@@ -235,7 +233,7 @@ bind_cols(df_test$Species, pred.iris$predictions) %>%
   theme_bw() +
   theme(legend.position = "none") + 
   labs(title = "The random forest ML model correctly predicts 92% of the unseen examples",
-       subtitle = "It confuses one versicolor iris as virginica and two virginica as verseicolor",
+       subtitle = "The model is weakest when presented with virginica iris",
        x = "True Species classification",
        y = "Modelled Species",
        caption = "Using examples that were not used when building the model")
@@ -243,11 +241,9 @@ bind_cols(df_test$Species, pred.iris$predictions) %>%
 
 ```
 
-The table above shows that the model correctly classifies all but 3 of the 38 unseen examples. Not bad for one line of code?.
-
 ## Inspecting the classification model
 
-The ML models can be quite difficult to understand. Again, the ML community have built a range of tools to help us inspect / understand what the model is doing and what inputs it things is most important to generate it's outputs. The plot below shows the importance of the variables as far as this fitted random forest is concerned:
+The ML models can be quite difficult to understand. Again, the ML community have built a range of tools to help us inspect / understand what the model is doing and what inputs it things is most important to generate its outputs. The plot below shows the importance of the variables as far as this fitted random forest is concerned:
 
 ```{r explore what is important when trying to classify iris Species }
     #  the importance is here: model_clas$variable.importance
@@ -255,29 +251,31 @@ The ML models can be quite difficult to understand. Again, the ML community have
       vip::vip(num_features = 20,  aesthetics = list(color = "grey50", fill = "lightblue"))
 ```
 
-The variable importance plot shows that the Petal width / height are much more valuable to know when trying to classify the species of an iris than (say) sepal dimensions, and even more valuable than those noisy measurements I added to the dataset which had little or no linkage with anything.
+The variable importance plot shows that the Petal length and width are much more valuable to know when trying to classify the *Species* of an iris than (say) sepal dimensions, and even more valuable than those noisy measurements I added to the dataset which had little or no linkage with anything.
 
-**Actionable insight:** The variable importance plots are valuable both to the model builder (to sense-check that the model is doing sensible things) and for the process of data collection and duration... Why collect (potentially buy) and store the noise variable if it is not adding significant value to out decision making process?
+**Actionable insight:** The variable importance plots are valuable both
 
-Caveat: take care when making value decisions. I would recommend testing model performance with / without the more exotic parameters in case they are rarely used, but super-valuable for some corner case that *must* be modelled well.
+1.  to the model builder (to sense-check that the model is doing sensible things)
+
+2.  and for the process of data collection and retention... Why would you choose to purchase, collect and store the noise variable if it is not adding significant value to the decision making process?
+
+Caveat: Take care when making value decisions. I would recommend testing model performance with and without the more exotic parameters in case they are rarely used, but super-valuable for some corner case that *must* be modelled well.
 
 ## The logic in the decision trees
 
-As described earlier, I've built the classification model on a random forest made up of 300 different decision trees. each decision tree is a family of nested IF-THEN statements that look a bit like that scooby-doo meme that start all of this.
+As described earlier, I've built the classification model on a random forest made up of 300 different decision trees. each decision tree is a family of nested IF-THEN statements that look a bit like that scooby-doo meme that started all of this.
 
-### Example 1 of classification decision tree (dplyr & SQL)
+### Example 1 of classification decision tree (SQL)
 
-We can inspect the contents of each tree, either as logic:
-
-```{r one classification tree summarised as DPLYR syntax}
-  as.character(tidypredict::tidypredict_fit(model_clas)[1]) # DPLYR
-```
-
-or, more generically, as SQL as shown below. SQL is really useful. We're going to push the decision trees into excel, but SQL can be pushed into databases so that the whole classification process can be done inside the database.
+We can inspect the contents of each tree as SQL (as shown below). SQL is really useful. We're going to push the decision trees into Excel, but SQL can be pushed into databases so that the whole classification process can be done inside the database.
 
 ```{r one classification tree summarised as SQL }
 tidypredict::tidypredict_sql(model_clas, dbplyr::simulate_dbi())[1] # SQL
 ```
+
+The above SQL works in databases but not in Excel. It's not a huge leap of imagination to see how the WHEN statements could be converted into IF statements ready for Excel (more on this later).
+
+Here's what another tree in the forest looks like in SQL. It's different (simpler in this case) and will give slightly different answers to the first.
 
 ### Example 2 of classification decision tree (SQL)
 
@@ -286,21 +284,51 @@ tidypredict::tidypredict_sql(model_clas, dbplyr::simulate_dbi())[2] # SQL
 
 ```
 
-## Preparing the decision trees for use in excel
+Notice that the second tree is using "Noisy.Sepal.Length" (and an apparently extremely precise number as a threshold). We knew at the outset that "Noisy.Sepal.Length" is a red-herring (I deliberately created it as a corrupted version of Sepal.Length). Perhaps it's a surprise that it was included, but there's manifestly *some* value in it when the options are sufficiently limited. In general we don't know at the outset which variables hold insight into out problem, however, the variable importance plot has shown us that *overall* it is not as valuable as some other variables. If we had access to a domain expert, perhaps we would ask them whether there is any real value in this measurement. Perhaps we would explore a new cut of the iris dataset that excluded "Noisy.Sepal.Length" (and *Noise*) based on the variable importance plot . After this review of the results we might choose to not use these variables. I'm not going to do any if this as it's not material to this expo.
 
-I've written a couple of functions that will take the logic formatted as SQL and turn it into something that can be run in Excel as shown below:
+## Preparing the decision trees for use in Excel
 
-```{r a function to translate SQL CASE WHEN into excel friendly if statements, warning=FALSE}
-# function to process the format returned by tidypredict_sql into
-# a format that excel can parse
-# sql_to_excel ----
+I've written a couple of functions that will take the logic formatted as SQL and turn it into something that can be run in Excel (see folded code below):
+
+```{r a function to translate SQL CASE WHEN into Excel friendly if statements, warning=FALSE}
+
+#' @title sql_to_excel
+#'
+#' @description
+#' This function converts a string as outputted by tidymodels::tidypredict_sql()
+#' and returns something that model like an Excel formula
+#' the result includes variable (column) names,  not cell references
+#' @param trees_df a 1D df containing one row per model
+#' @param input_df The dataframe upon which the model is to be used
+#' @param n_sf number of significant figures (parameters are rounded to save space)
+#' @param squishit should extra whitespace be removed to save space
+#'
+#' @return a dataframe with the reformatted equation(s) in rows
+#'
+#' @export
+#'
 sql_to_excel <- function(trees_df, input_df, n_sf = 3, squishit = T) {
+  
+  # sorry in advance for using a for loop!
+  # xgboost model always includes a null check
+  # e.g. CASE\nWHEN ((`Petal.Width` < 0.800000012 OR (`Petal.Width` IS NULL))) THEN 0.282941192
+  # I want to remove all insances of  OR (`Petal.Width` IS NULL) (for all potential variables)
+  for (col_name in names(input_df)) {
+    trees_df <- trees_df %>%
+#      " OR \\(`Petal.Width` IS NULL\\)"
+      mutate(instruction = str_remove_all(instruction, paste0(" OR \\(`", col_name, "` IS NULL\\)")))
+  }
+
+  # one last bit   
+  trees_df <- trees_df %>%
+    mutate(instruction = str_remove_all(instruction, "0.0 \\+ "))
   
   equations_in_cols_a <- trees_df %>%
     # adapt
     # the kinds of things you find output from tidypredict_sql
+    mutate(instruction = paste0("=", instruction)) %>%
     mutate(instruction = str_replace_all(instruction, "AND", ",")) %>%
-    mutate(instruction = str_replace_all(instruction, "CASE\nWHEN", "=IF(AND")) %>%
+    mutate(instruction = str_replace_all(instruction, "CASE\nWHEN", "IF(AND")) %>%
     mutate(n_parts = str_count(instruction, "\n"), .before = instruction) %>%
     mutate(instruction = str_replace_all(instruction, "WHEN", ", IF(AND")) %>%
     mutate(instruction = str_replace_all(instruction, "THEN", ", ")) %>%
@@ -324,11 +352,11 @@ sql_to_excel <- function(trees_df, input_df, n_sf = 3, squishit = T) {
   }
   
   # we are going to swap references to the column names in R
-  # with column names in excel (e.g. Sepal.Width becomes A[ROW_NUM])
+  # with column names in Excel (e.g. Sepal.Width becomes A[ROW_NUM])
   # we're adding [ROW_NUM] because later we're going to have many rows of calcs
   # substitute A[ROW_NUM], with A[1], A[2] etc.
-  # this dataframe has two columns,  the R column name and the A/B/C etc for excel
-  # we'll subsitute the R ones with th excel cols references later
+  # this dataframe has two columns,  the R column name and the A/B/C etc for Excel
+  # we'll subsitute the R ones with th Excel cols references later
   replacements <- names(input_df) %>%
     tolower() %>%
     enframe(name = NULL, value = "word") %>%
@@ -337,10 +365,10 @@ sql_to_excel <- function(trees_df, input_df, n_sf = 3, squishit = T) {
   # ultimately we'll be having one equation per column
   # for now there's one equation per row
   # we're going to want to labels them rule_1...rule_n
-  # (these will be the col titles) in excel)
+  # (these will be the col titles) in Excel)
   # AND ...
   # we want to substitute the original variable names in the equations
-  # with the correspondinh excel column references
+  # with the correspondinh Excel column references
   equations_in_cols <- equations_in_cols_a %>%
     # make a reference to the column names...
     mutate(tree_number = row_number()) %>%
@@ -383,17 +411,17 @@ sql_to_excel <- function(trees_df, input_df, n_sf = 3, squishit = T) {
 
 ```
 
-The function generates the following output for the tree we have been exploring. Those familiar with excel cell formulae will see that this is getting close to something usable inside Excel.
+The function generates the following output for the tree we have been exploring. Those familiar with Excel cell formulae will see that this is getting close to something usable inside Excel.
 
 ```{r explore the content of a tree, warning=FALSE, message=FALSE}
 
-#| random forest classification in excel format ----
+#| random forest classification in Excel format ----
 # tidypredict_sql takes a while (10s of seconds)
-trees_df_clas <- tidypredict::tidypredict_sql(model_clas, dbplyr::simulate_dbi()) %>%
+trees_df_iris_rf_clas <- tidypredict::tidypredict_sql(model_clas, dbplyr::simulate_dbi()) %>%
   tibble::enframe(name = NULL, value = "instruction") %>%
   mutate(instruction = unlist(instruction))
 
-randforest_clas <- sql_to_excel(trees_df = trees_df_clas, input_df = iris_n_noise)
+randforest_clas <- sql_to_excel(trees_df = trees_df_iris_rf_clas, input_df = iris_n_noise)
 
 randforest_clas$tree_1
 
@@ -401,11 +429,11 @@ randforest_clas$tree_1
 
 Note some of the things the function has done:
 
-1.  Convert SQL / DPLY conditional logid to excel-friendly IF() logic. This is necessary to allow excel to evaluate the decision tree natively.
+1.  Convert SQL / DPLYR conditional logic to Excel-friendly IF() logic. This is necessary to allow Excel to evaluate the decision tree natively.
 
-2.  Convert dataset column names into row-col cell references. The dataset columns start as "A" and progress up the alphabet.
+2.  Convert dataset column names into row-col cell references. The dataset columns start as "A" and progress up the alphabet. The columns count up from the first row of data (starting at row 2 as the data I eventually push into Excel will have the variable names in the first column). At this point in the process I'm just putting "ROW_NUM" as a place-holder for the real row-number as the formula is yet to be added as a column next to the iris dataset. I'll replace ROW_NUM with 2, 3 etc when I add the formula to each row of the dataset in Excel.
 
-3.  Limit the number of significant figures for the condition thresholds. This is a practical step to limit the length of decision tress in each excel cell.
+3.  Limit the number of significant figures for the condition thresholds. This is a practical step to limit the length of the logic representing the decision trees in each Excel cell and may be configures to higher resolution if required.
 
 For example:
 
@@ -415,55 +443,61 @@ becomes
 
 `=if(and(F[ROW_NUM]<0.044,B[ROW_NUM]<3.35),\"virginica\"`
 
-**We're almost there!** The process of fitting Machine Learning models and preparing them to be used inside Excel is starting to come together. The above is the logic from just one of the 300 decision trees. Each of the other trees was trained on slightly different data and hence has captured slightly different logic, all trees are of value and must be translated and exported. When resolving different suggestions for species from different trees, the random forest algorithms can use voting methods like "most often suggested" to come up with a single final answer. If I'm to get this embedding into excel I will have to emulate that voting system too. See the section on getting the models into Excel for the rest of that story. For now I'll move on to regression.
+**We're almost there!** The process of fitting Machine Learning models and preparing them to be used inside Excel is starting to come together. The above is the logic from just one of the 50 decision trees. Each of the other trees was trained on slightly different data and hence has captured slightly different logic. All trees are of value and must be translated and exported. When resolving different suggestions for *Species* from different trees, the random forest algorithms can use voting methods like "most often suggested" to come up with a single final answer. If I'm to get this embedding into Excel I will have to emulate the voting system too. See the section on getting the models into Excel for the rest of that story. For now I'll move on to regression.
 
 # Regression
 
-I'm re-using the iris dataset to explore regression. In this section, instead of having the Species as a target variable, I'm going to model Petal Length. I'll be making available all the other stuff I know about each iris to the learning systems. They will pick and chose which variables are important and how they should be combined to give me an way of estimating how long my iris petals might be given all that other information.
+I'm re-using the iris dataset to explore regression. In this section, instead of having the *Species* as a target variable, I'm going to model *Petal.Length*. I'll be making available all the other stuff I know about each iris to the learning systems. They will pick and choose which variables are important and how they should be combined to give me a way of estimating how long my iris petals might be given all that other information.
 
-Random forests are a for of ML that can do both classification AND regression. This is great because *most* of what I've written, and you've read from the classification section remains true[^9].
+Random forests are a form of ML that can do both classification AND regression. This is great because *most* of what I've written, and you've read from the classification section remains true[^9].
 
 [^9]: In the implementation of random forests I'm using, the bit that translates each tree into SQL doesn't handle categorical variables very elegantly. It translates them into counting numbers, so the iris class becomes 1, 2 &3. not a huge issue, but I would've rather it have captured the categorical input data as elegantly as the LM clearly does (read on)
 
-Before diving in to random forests for regression I thought I'd have a quick look at a more traditional way of building models.... Linear regression.
+Before diving in to random forests for regression I thought I'd have a quick look at a more traditional way of building regression models.... Linear regression.
 
 ## Regression using LM (Linear models)
 
-First off, I'd just like to state that linear models and generalised linear models *are* a form of machine learning. They generate information from data. I'm deliberately(ish) adding this section on regression in LMs because they are more familiar to many than other ML techniques and act as a valuable reference point against which other ML techniques can be compared. And yes, I appreciate that Excel already has capability to do linear regression, but I'm trying to highlight bridges here, one step beyond preparing the data to be fitted in excel is doing the fit elsewhere and feeding the fitted model into Excel for on-use.
+First off, I'd just like to state that linear models and generalised linear models *are* a form of machine learning. They generate information from data. I'm deliberately(ish) adding this section on regression in LMs because they are more familiar to many than other ML techniques and act as a valuable reference to compare other ML techniques against. And yes, I appreciate that Excel already has capability to do linear regression, but I'm trying to highlight bridges here.
 
-Fitting linear models in R and checking the significance of each parameter is really easy
+Fitting linear models in R and checking the significance of each parameter is really easy.
 
 ```{r list the full models parameters in descending significance }
 model_lm <- lm(Petal.Length ~ ., data=df_train)
+model_lm
+```
+
+We can follow standard processes and inspect the significance of each parameter:
+
+```{r inspect full model}
 model_lm %>%
     broom::tidy() %>% arrange(p.value)
 ```
 
-Refining the model to only include useful stuff can be don by forward steo-wise variable selection (select & backward elimination)
+Reassuringly, the *Noise* & "Noisy.Sepal.Length" measurements are flagged as the least significant measurements in the model.
+
+We can refine the model to only include useful stuff by step-wise variable selection...
 
 ```{r list the simplified models parameters in descending significance}
-simplified_model <- MASS::stepAIC(model_lm, direction = "both")
+simplified_model <- MASS::stepAIC(model_lm, direction = "both", trace = FALSE)
 # have a look at this model 
 simplified_model %>%
   broom::tidy() %>% arrange(p.value)
 
 ```
 
-which results in simpler models (which could be further refined). Notice that som.
+Step-wise regression generates a simpler model (which could be further refined). Notice that some parameters that were retained in the simplification process are not significant at p\<0.05).
 
-The model that has been allowed to add & remove variables is simpler and better than the model forced to use all of the variables
+The model that has been allowed to add & remove variables is simpler and better than the model forced to use all of the variables. The comparison below shows that the same accuracy can be achieved with fewer parameters:
 
 ```{r  compare the performance of the two lms}
 performance::compare_performance(model_lm, simplified_model, rank = TRUE)
 
 ```
 
-we can check how well the model performs
+Let's check how well the models perform on the test data:
 
-```{r visualise the lm model performance against the target variable }
+```{r visualise the lm model performance against the target variable, warning=FALSE, message=FALSE}
 # creating ggplot object for visualization
-predict(model_lm, df_test %>% head(2)) %>% enframe(name = NULL, value = "full_prediction")
-
 df_test %>%
   bind_cols(predict(model_lm, df_test) %>% 
               enframe(name = NULL, value = "full_prediction")
@@ -478,24 +512,28 @@ df_test %>%
   ggpubr::stat_regline_equation(aes(label =  paste(after_stat(eq.label),
                                                    after_stat(adj.rr.label), sep = "~~~~"))) +
   geom_smooth(method = "lm") +
-  facet_wrap( ~ model)
+  facet_wrap( ~ model) +
+  labs(title = "Both the full linear model and the simpler one look good",
+       subtitle = "This plot is based on the test dataset",
+       x = "True Petal Length",
+       y = "Modelled Petal Length")
 
 ```
 
-The model can be turned into something that looks like R:
+The model can be turned into something that can be used in R code:
 
-```{r turning a LM into an excel-like equation }
+```{r turning a LM into an Excel-like equation }
   tidypredict::tidypredict_fit(simplified_model)
 ```
 
-and translate the model into something that looks more like something Excel would recognise
+... and translated into something that looks more like something Excel would recognise:
 
-```{r some useful functions that map the dataframe into an excel friendly form}
+```{r some useful functions that map the dataframe into an Excel friendly form}
 #' @title fit_to_excel
 #'
 #' @description
 #' This function converts a string as outputted by tidymodels::tidypredict_fit()
-#' and returns something that model like an excel formula
+#' and returns something that model like an Excel formula
 #' the result includes variable (column) names,  not cell references
 #' @param trees_df a 1D df containing one row per model
 #' @param input_df The dataframe upon which the model is to be used
@@ -530,11 +568,11 @@ fit_to_excel <- function(trees_df, input_df, n_sf = 3, squishit = T) {
   }
   
   # we are going to swap references to the column names in R
-  # with column names in excel (e.g. Sepal.Width becomes A[ROW_NUM])
+  # with column names in Excel (e.g. Sepal.Width becomes A[ROW_NUM])
   # we're adding [ROW_NUM] because later we're going to have many rows of calcs
   # substitute A[ROW_NUM], with A[1], A[2] etc.
-  # this dataframe has two columns,  the R column name and the A/B/C etc for excel
-  # we'll subsitute the R ones with th excel cols references later
+  # this dataframe has two columns,  the R column name and the A/B/C etc for Excel
+  # we'll subsitute the R ones with th Excel cols references later
   replacements <- names(input_df) %>%
     enframe(name = NULL, value = "word") %>%
     mutate(col_letter = paste0(LETTERS[row_number()], "[ROW_NUM]"))
@@ -542,10 +580,10 @@ fit_to_excel <- function(trees_df, input_df, n_sf = 3, squishit = T) {
   # ultimately we'll be having one equation per column
   # for now there's one equation per row
   # we're going to want to labels them rule_1...rule_n
-  # (these will be the col titles) in excel)
+  # (these will be the col titles) in Excel)
   # AND ...
   # we want to substitute the original variable names in the equations
-  # with the corresponding excel column references
+  # with the corresponding Excel column references
   # stack exchange to the rescue:
   # https://stackoverflow.com/questions/50750266/r-find-and-replace-partial-string-based-on-lookup-table
   for(i in 1:nrow(equations_in_cols_a)) {
@@ -576,21 +614,22 @@ fit_to_excel <- function(trees_df, input_df, n_sf = 3, squishit = T) {
   
   return(equations_in_rows)
 } #
-  # this emulates LM in excel format ----
+  # this emulates LM in Excel format ----
   trees_df_lm <- tidypredict::tidypredict_fit(model_lm)[2] %>% as.character() %>%
     tibble::enframe(name = NULL, value = "instruction") %>%
     mutate(instruction = unlist(instruction)) %>%
     mutate(instruction = as.character(instruction))
   
 lm_excel <- fit_to_excel(trees_df = trees_df_lm, input_df = iris_n_noise)
-lm_excel
+
+as.character(lm_excel)
 ```
 
 ## Regression using ML (Machine Learning)
 
-As stated previously, random forests can be used for both classification and regression tasks with very little modification. Regression random forests can have bigger trees with mode leaves, and the suggestions from all the individual trees are reconciled by using averages rather than the majority voting method described for classification, but most of the mechanics remain unaltered when using them for regression.
+As stated previously, random forests can be used for both classification and regression tasks with very little modification. Regression random forests can have bigger trees with more leaves, and the suggestions from all the individual trees are reconciled by using averages rather than the majority voting method described for classification, but most of the mechanics remain unaltered when using them for regression.
 
-I'm going to make one minor modification to the Iris dataset before feeding it into the random forest for regression. I'm going to change the way that "Species" is encoded. I'll change it from three words, to three numbers. This is the only compromise I'm making in this post and I'm going do because I'm relying on a routine called *tidypredict::tidypredict_sql()* to flatten the decision tree rules and convert them into SQL. this routine returns the logic for factors (like Species) as numbers, so it's easier for me to turn them into numbers at the outset than handle the mapping when I get the SQL. The code to re-map the species is shown below:
+I'm going to make one minor modification to the Iris dataset before feeding it into the random forest for regression. I'm going to change the way that *Species* is encoded. I'll change it from three words, to three numbers. Note: if you're going to use this code to firt your own dataset then you will have to convert any factors or strings into integers as I have, and adapt the regression equation to ignore the originals. This is the only compromise I'm making in this post and I'm going to do so because I'm relying on a routine called *tidypredict::tidypredict_sql()* to flatten the decision tree rules and convert them into SQL. this routine returns the logic for factors (like Species) as numbers, so it's easier for me to turn them into numbers at the outset than handle the mapping when I return the SQL. The code to re-map the *Species* is shown below:
 
 ```{r make an integer version of (the factor) Species (I dont like having to do this) }
 iris_n_noise_reg <- iris_n_noise %>%
@@ -603,7 +642,7 @@ iris_reg_train <- rsample::training(iris_reg_split)
 iris_reg_test  <- rsample::testing(iris_reg_split)
 ```
 
-Now I can build the random forest. I could use ranger directly as follows:
+Now I can build the random forest:
 
 ```{r decision tree regression directly using ranger}
 set.seed(37) # setting a seed helps with reproducibility
@@ -620,7 +659,7 @@ model_reg
 
 It's always a good idea to plot the model's performance:
 
-```{r scatterplot of simple ranger model }
+```{r scatterplot of simple ranger model, warning=FALSE, message=FALSE}
 # then do a quick check on teh output
 pred.iris <- stats::predict(model_reg, data = iris_reg_test)
 bind_cols(iris_reg_test$Petal.Length, pred.iris$predictions) %>%
@@ -634,14 +673,16 @@ bind_cols(iris_reg_test$Petal.Length, pred.iris$predictions) %>%
 
 ```
 
-check what variables are considered important in this model:
+... and check what variables are considered important in this model:
 
 ```{r variable importance in the 1st go of ML RF model }
 model_reg %>%
       vip::vip(num_features = 20,  aesthetics = list(color = "grey50", fill = "lightblue"))
 ```
 
-Then carry on having extracted the rules as per the classification example. See below for a single tree that's been fitted in the random forest. Notice that the tree is considerably larger than the one we explored in the classification case.
+*Species_n* is the integer version of the *Species*. When building the model I asked it to use *Species_n* rather than *Species.* The random forest finds that *Species_n*, *Sepal.Length* and *Petal.With* are most useful when estimating the length of the petals.
+
+Then carry on having extracted the rules as per the classification example. See below for a single tree from the random forest. Notice that the tree is considerably larger than the one we explored in the classification case.
 
 ### Example 1 of regression decision tree
 
@@ -651,7 +692,7 @@ tidypredict::tidypredict_sql(model_reg, dbplyr::simulate_dbi())[1]
 
 ```
 
-Phew! that's a *lot* of conditions! Remember that is only one tree in the forest of (50) trees! I'll list just one more to illustrate what's going on under the hood.
+Phew! that's a *lot* of conditions! Remember that the logic shown above is only a single tree in the forest of (50) trees! I'll list just one more to illustrate what iss going on under the hood.
 
 ### Example 2 of regression decision tree
 
@@ -661,41 +702,53 @@ tidypredict::tidypredict_sql(model_reg, dbplyr::simulate_dbi())[2]
 
 ```
 
+## Bonus: xgboost (almost)
+
+```{r}
+# xgboost regression (works,  but the SQL needs extra work to convert into excel) ----
+library(parsnip)
+
+model_reg_xgboost <- boost_tree(mode = "regression") %>%
+  set_engine("xgboost") %>%
+  fit(Petal.Length ~ . - Species, data = iris_reg_train)
+
+```
+
 # Getting the models into Excel
 
 So far I have:
 
-1.  Fitted a few models (one random forest of decision trees for classification and two ways of fitting regression models).
+1.  Fitted a few models: one random forest of decision trees for classification and one for regression, and an extra linear model for regression.
 
-2.  translated these models into if() logic that excel can execute
+2.  Translated these models into if() logic that Excel can execute
 
-I still need to
+... I still need to:
 
 3.  Add some columns that summarise the 'best' model (remember random forests are made up of many decision trees, each tree offers a suggestion of the answer we're after)
 
-4.  Package the data and the models (as formula) into something that can be loaded into excel
+4.  Package the data and the models (as formula) into something that can be loaded into Excel
 
-Building the best output (and some kind of indicator on the confidence of that answer) is slightly different for classification and regression. For classification I chose
+Building the best output (and some kind of indicator on the confidence of that answer) is slightly different for classification and regression. The table below summaries the key differences.
 
-+--------------------------+--------------------------------------------------------------------+---------------------------------------------+
-|                          | Classification                                                     | Regression                                  |
-+==========================+====================================================================+=============================================+
-| Best model               | Modal (most common) result from all trees                          | Mean (average) result from all trees        |
-+--------------------------+--------------------------------------------------------------------+---------------------------------------------+
-| Confidence in Best model | Percentage of all models agreeing with the best model              | normalised variance of all tree estimates   |
-|                          |                                                                    |                                             |
-|                          | =COUNTIF(L2:BI2, H2) / COUNTA(L2:BI2)                              | = 1-SQRT(VAR(M2:BJ2, I2)) / AVERAGE(M2:BJ2) |
-+--------------------------+--------------------------------------------------------------------+---------------------------------------------+
-| Accuracy                 | Logical ( True if the best model correctly classified the example  | percentage error                            |
-|                          |                                                                    |                                             |
-|                          | = (modelled = actual)                                              | = (modelled - actual) / actual              |
-+--------------------------+--------------------------------------------------------------------+---------------------------------------------+
++--------------------------+-------------------------------------------------------------------+---------------------------------------------+
+| Statistic                | Classification                                                    | Regression                                  |
++==========================+===================================================================+=============================================+
+| Best model               | Modal (most common) result from all trees                         | Mean (average) result from all trees        |
+|                          |                                                                   |                                             |
+|                          | = INDEX(L2:BI2, MODE(MATCH(L2:BI2, L2:BI2, 0 )))                  | = AVERAGE(M2:BJ2)                           |
++--------------------------+-------------------------------------------------------------------+---------------------------------------------+
+| Confidence in Best model | Percentage of all models agreeing with the best model             | normalised variance of all tree estimates   |
+|                          |                                                                   |                                             |
+|                          | =COUNTIF(L2:BI2, H2) / COUNTA(L2:BI2)                             | = 1-SQRT(VAR(M2:BJ2, I2)) / AVERAGE(M2:BJ2) |
++--------------------------+-------------------------------------------------------------------+---------------------------------------------+
+| Accuracy                 | Logical ( True if the best model correctly classified the example | percentage error                            |
+|                          |                                                                   |                                             |
+|                          | = (modelled = actual)                                             | = (modelled - actual) / actual              |
++--------------------------+-------------------------------------------------------------------+---------------------------------------------+
 
-: Rules for summarising Random Forests in Excel
+: To implement this I have written a couple more utility functions:
 
-### A couple more utility functions
-
-```{r  utlility functions to help reformat teh RF rules and add them to df}
+```{r  utlility functions to help reformat the RF rules and add them to df}
 
 #' @title add.formula
 #'
@@ -709,129 +762,24 @@ add.formula <- function(x) {class(x) <- c(class(x), "formula"); x}
 #' @title add.formula
 #'
 #' @description
-#' things function returns the letter of a column index by x in excel format
+#' things function returns the letter of a column index by x in Excel format
 #' Excel has a col::row reference system with letters::numbers
 #' the letters (columns) starft at 'A',  continue until 'Z' then 'AA'-'ZZ'
 #' 
 #' @param x the columns number (starting from 1 -> 'A')
 #'
-#' @return string containing the excel letter-based column reference 
+#' @return string containing the Excel letter-based column reference 
 #' 
 get_excel_letter <- function(x) {
   paste0(LETTERS[((x-1) %/% 26)], LETTERS[1+((x-1) %% 26)])
 }
 
-#' @title sql_to_excel
-#'
-#' @description
-#' This function converts a string as outputted by tidymodels::tidypredict_sql()
-#' and returns something that model like an excel formula
-#' the result includes variable (column) names,  not cell references
-#' @param trees_df a 1D df containing one row per model
-#' @param input_df The dataframe upon which the model is to be used
-#' @param n_sf number of significant figures (parameters are rounded to save space)
-#' @param squishit should extra whitespace be removed to save space
-#'
-#' @return a dataframe with the reformatted equation(s) in rows
-#'
-#' @export
-#'
-sql_to_excel <- function(trees_df, input_df, n_sf = 3, squishit = T) {
-  
-  equations_in_cols_a <- trees_df %>%
-    # adapt
-    # the kinds of things you find output from tidypredict_sql
-    mutate(instruction = str_replace_all(instruction, "AND", ",")) %>%
-    mutate(instruction = str_replace_all(instruction, "CASE\nWHEN", "=IF(AND")) %>%
-    mutate(n_parts = str_count(instruction, "\n"), .before = instruction) %>%
-    mutate(instruction = str_replace_all(instruction, "WHEN", ", IF(AND")) %>%
-    mutate(instruction = str_replace_all(instruction, "THEN", ", ")) %>%
-    mutate(instruction = str_replace_all(instruction, "END", ", 'SHOULDNTHAPPEN'")) %>%
-    #  mutate(instruction = str_replace_all(instruction, "\n", ", ")) %>%
-    mutate(end = str_pad(string = "", width = n_parts, side = "right", pad = ")"), .after = n_parts) %>%
-    mutate(output = paste0(instruction, end)) %>%
-    mutate(output = str_replace_all(output, "'", '"')) %>%
-    mutate(output = str_squish(output))
-  
-  # limit to a certain number of significant figures
-  if(exists("n_sf")) {
-    equations_in_cols_a <- equations_in_cols_a  %>%
-      mutate(output = str_replace_all(output, "\\d+\\.\\d+", function(x) as.character(round(as.numeric(x), n_sf))))
-  }
-  
-  # remove any unnecessary spaces that are only really there to aid the human eye
-  if(squishit) {
-    equations_in_cols_a <- equations_in_cols_a  %>%
-      mutate(output = str_replace_all(output, " ", ""))
-  }
-  
-  
-  # we are going to swap references to the column names in R
-  # with column names in excel (e.g. Sepal.Width becomes A[ROW_NUM])
-  # we're adding [ROW_NUM] because later we're going to have many rows of calcs
-  # substitute A[ROW_NUM], with A[1], A[2] etc.
-  # this dataframe has two columns,  the R column name and the A/B/C etc for excel
-  # we'll subsitute the R ones with th excel cols references later
-  replacements <- names(input_df) %>%
-    tolower() %>%
-    enframe(name = NULL, value = "word") %>%
-    mutate(col_letter = paste0(LETTERS[row_number()], "[ROW_NUM]"))
-
-  # ultimately we'll be having one equation per column
-  # for now there's one equation per row
-  # we're going to want to labels them rule_1...rule_n
-  # (these will be the col titles) in excel)
-  # AND ...
-  # we want to substitute the original variable names in the equations
-  # with the correspondinh excel column references
-  equations_in_cols <- equations_in_cols_a %>%
-    # make a reference to the column names...
-    mutate(tree_number = row_number()) %>%
-    # unpack the (wide) equation into (long) parts so we can get at the variables
-    tidytext::unnest_tokens(word, output, token = "regex", pattern = "`") %>%
-    # we only need a couple of the columns going forwards
-    select(tree_number, word) %>%
-    # do a lookup find&replace using left_join
-    left_join(replacements)
-
-  # breakpoint in the pipeline here.. .I want to check that some of the
-  # variables have been found
-  # (i.e. we're not passing in a dataframe that doesnt have the same variables)
-  if(nrow(equations_in_cols %>% filter(!is.na(col_letter))) <1) {
-    warning("sql_to_excel: NO MATCHES IN replacements")
-  } else {
-    message("sql_to_excel: replacements found")
-  }
-  
-  equations_in_cols <- equations_in_cols %>%
-    # then coalesce, as this will sub-in col_letter is it's defined, and word if not
-    mutate(new_word = coalesce(col_letter, word)) %>%
-    # now we can repack the (long) parts of the equations into whole (wide) equation
-    # grouping by tree_number will work on all the components of each equation in turn
-    group_by(tree_number) %>%
-    # summarise paste0 concatenates the rows into one (wide) reconstructed equation
-    summarise(output = paste0(new_word, collapse = ''))
-  
-  #| transpose (flip) the array so that
-  #| the equations are in columns rather than rows
-  equations_in_rows <- equations_in_cols %>%
-#    mutate(tree_number = paste0("tree_", tree_number)) %>%
-    gather(key = var_name, value = value, 2:ncol(equations_in_cols)) %>% 
-    spread(key = names(equations_in_cols)[1],value = 'value') %>%
-    rename_with(~ paste0("tree_", .), -var_name) %>%
-    select(-var_name)
-  
-  return(equations_in_rows)
-} 
-#usage:
-# theRes <- sql_to_excel(trees_df_clas, iris)
-# theRes["tree_1"]
 
 #' @title augment_df_with_rules
 #'
 #' @description
 #' This function takes a list of models (e.g. a LM, or many decision trees)
-#' and transforms them so that they act on the "in_df" as per excel
+#' and transforms them so that they act on the "in_df" as per Excel
 #' @param models a 1D df containing one row per model
 #' @param in_df The dataframe upon which the model is to be used
 #' @param target The names of the target variable (must be in the in_df)
@@ -877,10 +825,10 @@ augment_df_with_rules <- function(models, in_df, target = NA, method = "classifi
   }
   
   result_df <- result_df %>%
-    mutate(row_num = as.character(row_number()+1)) %>% # +1 because in excel there's a title in row 1
+    mutate(row_num = as.character(row_number()+1)) %>% # +1 because in Excel there's a title in row 1
     # fold in the actual row number instead of that place holder "ROW_NUM"
     mutate_at(vars(starts_with("tree")), list(~ str_replace_all(., "\\[ROW_NUM\\]", row_num))) %>%
-    # decorate the calculation columns as formula so excel will show the results rather than the equations
+    # decorate the calculation columns as formula so Excel will show the results rather than the equations
     mutate_at(vars(starts_with("tree")), add.formula) %>%
     select(-row_num)
   
@@ -889,168 +837,235 @@ augment_df_with_rules <- function(models, in_df, target = NA, method = "classifi
 
 ```
 
-### preparing the models for export to excel
+### Preparing the models for export to Excel
 
-```{r prepping the models to be understandable in excel }
+Let's use those functions to build the final data-frames contains everything we need to write to Excel...
 
-  #| turn the tidypredict_sql for all the trees into a tidy dataframe
+```{r prepping the models to be understandable in Excel }
 
-  #| random forest classification in excel format ----
-  trees_df_clas <- tidypredict::tidypredict_sql(model_clas, dbplyr::simulate_dbi()) %>%
-    tibble::enframe(name = NULL, value = "instruction") %>%
-    mutate(instruction = unlist(instruction))
+#| turn the tidypredict_sql for all the trees into a tidy dataframe
 
-  randforest_clas <- sql_to_excel(trees_df = trees_df_clas, input_df = iris_n_noise)
-  model_output_clas <- augment_df_with_rules(models = randforest_clas,
-                                             in_df = iris_n_noise,
-                                             target = "Species",
-                                             method = "classification")
-  trees_df_clas[1,]
-  model_output_clas[1,"tree_1"]
+#| random forest classification in Excel format ----
+trees_df_iris_rf_clas <- tidypredict::tidypredict_sql(model_clas, dbplyr::simulate_dbi()) %>%
+  tibble::enframe(name = NULL, value = "instruction") %>%
+  mutate(instruction = unlist(instruction))
 
-  # this emulates LM in excel format ----
-  trees_df_lm <- tidypredict::tidypredict_fit(model_lm)[2] %>% as.character() %>%
-    tibble::enframe(name = NULL, value = "instruction") %>%
-    mutate(instruction = unlist(instruction)) %>%
-    mutate(instruction = as.character(instruction))
-  # make excel-friendly
-  lm_excel <- fit_to_excel(trees_df = trees_df_lm, input_df = iris_n_noise)
-  model_output_lm <- augment_df_with_rules(models = lm_excel,
+randforest_clas <- sql_to_excel(trees_df = trees_df_iris_rf_clas, input_df = iris_n_noise)
+model_output_clas <- augment_df_with_rules(models = randforest_clas,
                                            in_df = iris_n_noise,
-                                           target = "Petal.Length",
-                                           method = "regession")
+                                           target = "Species",
+                                           method = "classification")
+trees_df_iris_rf_clas[1,]
+model_output_clas[1,"tree_1"]
 
-  # random forest regression in excel format ----
-  # get the rules
-  trees_df_iris_reg <- tidypredict::tidypredict_sql(model_reg, dbplyr::simulate_dbi()) %>%
-    tibble::enframe(name = NULL, value = "instruction") %>%
-    mutate(instruction = unlist(instruction)) 
-  
-  # convert the rules to excel format 
-  randforest_reg <- sql_to_excel(trees_df = trees_df_iris_reg, input_df = iris_n_noise_reg)
-  dim(randforest_reg) #one row but many columns (one per tree)
-  model_output_iris_reg <- augment_df_with_rules(models = randforest_reg,
-                                                 in_df = iris_n_noise_reg,
-                                                 target = "Petal.Length",
-                                                 method = "regression")
-  
-  dim(model_output_iris_reg) # many rows (one per example) and many columns (one per tree)
-  model_output_iris_reg[1,]$tree_best
-  model_output_iris_reg[1,]$tree_confidence
-  model_output_iris_reg[1,]$tree_match
-  # example rule
-  model_output_iris_reg[1,]$tree_1
+# this emulates LM in Excel format ----
+trees_df_lm <- tidypredict::tidypredict_fit(model_lm)[2] %>% as.character() %>%
+  tibble::enframe(name = NULL, value = "instruction") %>%
+  mutate(instruction = unlist(instruction)) %>%
+  mutate(instruction = as.character(instruction))
+# make Excel-friendly
+lm_excel <- fit_to_excel(trees_df = trees_df_lm, input_df = iris_n_noise)
+model_output_lm <- augment_df_with_rules(models = lm_excel,
+                                         in_df = iris_n_noise,
+                                         target = "Petal.Length",
+                                         method = "regession")
+
+# random forest regression in Excel format ----
+# get the rules
+trees_df_iris_rf_reg <- tidypredict::tidypredict_sql(model_reg, dbplyr::simulate_dbi()) %>%
+  tibble::enframe(name = NULL, value = "instruction") %>%
+  mutate(instruction = unlist(instruction)) 
+
+# convert the rules to Excel format 
+randforest_reg <- sql_to_excel(trees_df = trees_df_iris_rf_reg, input_df = iris_n_noise_reg)
+dim(randforest_reg) #one row but many columns (one per tree)
+model_output_iris_reg <- augment_df_with_rules(models = randforest_reg,
+                                               in_df = iris_n_noise_reg,
+                                               target = "Petal.Length",
+                                               method = "regression")
+
+# xgboost regression in Excel format ----
+# get the rules
+
+trees_df_iris_xgboost_reg <- tidypredict::tidypredict_sql(model_reg_xgboost, dbplyr::simulate_dbi()) %>%
+  tibble::enframe(name = NULL, value = "instruction") %>%
+  mutate(instruction = unlist(instruction))
+
+# convert the rules to Excel format 
+xgboost_reg <- sql_to_excel(trees_df = trees_df_iris_xgboost_reg, input_df = iris_reg_train)
+model_output_iris_xgboost_reg <- augment_df_with_rules(models = xgboost_reg,
+                                               in_df = iris_n_noise_reg,
+                                               target = "Petal.Length",
+                                               method = "regression")
+```
+
+The resultant dataframe has `r nrow(model_output_clas)` rows (one per example of iris), and `r ncol(model_output_clas)` columns. The columns are best summarised as three blocks:
+
+1.  The first block (of 7 columns) holds the iris data itself as described right at the outset.
+
+2.  The second block (of 4 columns) holds some summaries (which I'll expand on in a moment)
+
+3.  The third block (of 50 columns) holds 50 formulae that encapsulate the 50 trees generated within th random forest model.
+
+I hope blocks 1 and 3 have been expo'd already throught this post. The middle block (placed in the middle as they join the input data to all those individual trees by summarising the results) was described at the start of this section but is expanded below for clarity:
+
+-   **Target variable**: I have chosen to carry the target variable (*Species* for classification and *Petal.Length* for regression) into a new column for clarity. Having it duplicated may be a little redundant but I think it makes the spreadsheets easier to read. For example, the first target in the regression models is `r model_output_iris_reg[1,]$tree_target` (C is the column holding *Petal.Length* and the first equation is in row 2 as the column titles are in the first row. An example for classification is shown below
+
+-   **Model output**: The model output is some kind of aggregate of the the outputs of the individual trees. For classification, the model output for the first example is the most frequently suggested classification of all 50 models. The formula is: `r model_output_clas[1,]$tree_best`. For regression it is simply the average estimate from all the models. The formula for the best model is: `r model_output_iris_reg[1,]$tree_best`
+
+-   **Model Confidence**: I've chosen to use the following calculations to represent the confidence in the model outputs. For classification the column contains: `r model_output_clas[1,]$tree_confidence` and for regression it is: `r model_output_iris_reg[1,]$tree_confidence` .
+
+-   **Model Match**: For classification this is some a test of equality: `r model_output_clas[1,]$tree_match` and for regression I've used a percentage error metric: `r model_output_iris_reg[1,]$tree_match`
+
+Each cell in Spreadsheet has a limited number of characters. At the time of writing this is 32,767 characters in Excel. In libreOffice Calc it's even larger but shrinks to only 8192 'tokens'. Lets have a look at how many characters are in each decision tree:
+
+```{r quick check on rule compexity}
   # the trees can be quite long as every condition is defined as "IF",
   # most of the conditions for the next case are really just "ELSE"
   # but this way makes things much easier to read as a human
-  # excel's nested if(this, that, if(other...)) quickly become impenetrable
-  str_length(model_output_iris_reg[1,"tree_1"])
-
+  # Excel's nested if(this, that, if(other...)) quickly become impenetrable
+  randforest_clas %>%
+    pivot_longer(cols = everything(), names_to = "tree_id", values_to = "tree_content") %>%
+    mutate(model = "Classification", .before = tree_id) %>%
+    mutate(tree_length = str_length(tree_content), .after = tree_id) %>%
+    bind_rows(
+      randforest_reg %>%
+        pivot_longer(cols = everything(), names_to = "tree_id", values_to = "tree_content") %>%
+        mutate(model = "Regression", .before = tree_id) %>%
+        mutate(tree_length = str_length(tree_content), .after = tree_id)
+    ) %>%
+    group_by(model) %>%
+    arrange(desc(tree_length)) %>%
+    mutate(row_num = row_number()) %>%
+    ungroup() %>%
+    ggplot(aes(x = row_num, y = tree_length, colour = model)) +
+    geom_point() +
+    labs(title = "Regression trees are considerably more complex than ones for classification",
+         subtitle = "Each forest as 50 trees. Some trees are more complicated than others",
+         x = "", y = "Number of characters in the rule that defines the tree") +
+    facet_wrap( ~ model)
 ```
 
-ADD SOMETHING TO SHOW HOW I CHOSE THERN BEST AND CHECK CONFIDENCE
+If I had not shrunk the number of characters by removing whitespace and limiting the number of significant figures, these rules can exceed what can be represented in LibreOffice Calc.
 
-sdfdfgsdfg
+### Creating Excel spreadsheet
 
-### Creating excel spreadsheet
+There are packages that make it easy to create an Excel workbook with multiple tabs, one for each example I created above. I'm using {openxlsx} and writing each data-frame I created previously into a separate tab as datatables. The code is folded below.
 
-It's easy to create an excel workbook with multiple tabs, one for each example I created above:
+```{r create the Excel spreadsheet }
+# Creating Excel workbook..
+output_wb <- openxlsx::createWorkbook(creator = "Leo Kiernan", subject = paste0("Ranger random forest model ", lubridate::now()))
+openxlsx::addWorksheet(output_wb, "README", tabColour = "blue")
+openxlsx::addWorksheet(output_wb, "RF_classification", tabColour = "orange")
+openxlsx::addWorksheet(output_wb, "RF_classificationRules", tabColour = "orange")
+openxlsx::addWorksheet(output_wb, "LM_regression", tabColour = "green")
+openxlsx::addWorksheet(output_wb, "LM_regressionRules", tabColour = "green")
+openxlsx::addWorksheet(output_wb, "RF_regression", tabColour = "red")
+openxlsx::addWorksheet(output_wb, "RF_regressionRules", tabColour = "red")
+openxlsx::addWorksheet(output_wb, "XGB_regression", tabColour = "purple")
+openxlsx::addWorksheet(output_wb, "XGB_regressionRules", tabColour = "purple")
 
-```{r create the excel spreadsheet }
-  message("Creating excel workbook...")  
-  output_wb <- openxlsx::createWorkbook(creator = "Leo Kiernan", subject = paste0("Ranger random forest model ", lubridate::now()))
-  openxlsx::addWorksheet(output_wb, "README", tabColour = "blue")
-  openxlsx::addWorksheet(output_wb, "lm", tabColour = "green")
-  openxlsx::addWorksheet(output_wb, "lmRules", tabColour = "green")
-  openxlsx::addWorksheet(output_wb, "regression", tabColour = "red")
-  openxlsx::addWorksheet(output_wb, "regressionRules", tabColour = "red")
-  openxlsx::addWorksheet(output_wb, "classification", tabColour = "orange")
-  openxlsx::addWorksheet(output_wb, "classificationRules", tabColour = "orange")
-  
-  message("Populating excel workbook...")  
-  
-  tribble(
-    ~from, ~tab, ~info,
-    "LAK", "README", "This sheet",
-    "LAK", "lm", "example of a regression using a linear model",
-    "LAK", "lmRules", "example of the internal equations in the linear model",
-    "LAK", "classification", "example of a classification random forest",
-    "LAK", "classificationRules", "example of one rule from the classification random forest",
-    "LAK", "regression", "example of a regression random forest",
-    "LAK", "regressionRules", "example of one rule from the regression random forest"
-  ) %>%
-    mutate(Date = lubridate::now(), .before = 1) %>%
-    openxlsx::writeDataTable( wb = output_wb,
-                              sheet = "README",
-                              x = .,
-                              startCol = 1,
-                              startRow = 1,
-                              tableStyle = "TableStyleLight9",
-                              tableName = "README")
-  
-  # lm ----
-  model_output_lm %>%
-    openxlsx::writeDataTable( wb = output_wb,
-                              sheet = "lm",
-                              x = .,
-                              startCol = 1,
-                              startRow = 1,
-                              tableStyle = "TableStyleLight9",
-                              tableName = "lm")
-  
-  trees_df_lm  %>%
-    openxlsx::writeDataTable( wb = output_wb,
-                              sheet = "lmRules",
-                              x = .,
-                              startCol = 1,
-                              startRow = 1,
-                              tableStyle = "TableStyleLight9",
-                              tableName = "lmRules")
+# Populating Excel workbook... 
+# first the README tab
+tribble(
+  ~from, ~tab, ~info,
+  "LAK", "README", "This sheet",
+  "LAK", "classification", "An example of a classification of Iris Species using random forest",
+  "LAK", "classificationRules", "One row per tree in the classification random forest.  Easy-to-read SQL logic format",
+  "LAK", "lm", "An example of a regression to predict Petal Length using a linear model",
+  "LAK", "lmRules", "The internal equations in the linear model in an easy-to-read format",
+  "LAK", "regression", "An example of predicting Petal Length a regression random forest",
+  "LAK", "regressionRules", "One row per tree in the regression random forest.  Easy-to-read SQL logic format"
+) %>%
+  mutate(Date = lubridate::now(), .before = 1) %>%
+  openxlsx::writeDataTable( wb = output_wb,
+                            sheet = "README",
+                            x = .,
+                            startCol = 1,
+                            startRow = 1,
+                            tableStyle = "TableStyleLight9",
+                            tableName = "README")
 
-  # classification tree ----
-  model_output_clas %>%
-    openxlsx::writeDataTable( wb = output_wb,
-                              sheet = "classification",
-                              x = .,
-                              startCol = 1,
-                              startRow = 1,
-                              tableStyle = "TableStyleLight9",
-                              tableName = "classification")
-  
-  trees_df_clas  %>%
-    openxlsx::writeDataTable( wb = output_wb,
-                              sheet = "classificationRules",
-                              x = .,
-                              startCol = 1,
-                              startRow = 1,
-                              tableStyle = "TableStyleLight9",
-                              tableName = "classificationRules")
+# classification tree ----
+model_output_clas %>%
+  openxlsx::writeDataTable( wb = output_wb,
+                            sheet = "RF_classification",
+                            x = .,
+                            startCol = 1,
+                            startRow = 1,
+                            tableStyle = "TableStyleLight9",
+                            tableName = "RF_classification")
 
-  # regression tree ----
-  model_output_iris_reg %>%
-    openxlsx::writeDataTable( wb = output_wb,
-                              sheet = "regression",
-                              x = .,
-                              startCol = 1,
-                              startRow = 1,
-                              tableStyle = "TableStyleLight9",
-                              tableName = "regression")
-  trees_df_iris_reg  %>%
-    openxlsx::writeDataTable( wb = output_wb,
-                              sheet = "regressionRules",
-                              x = .,
-                              startCol = 1,
-                              startRow = 1,
-                              tableStyle = "TableStyleLight9",
-                              tableName = "regressionRules")
-  
-  
-  message("Saving excel workbook...")  
-  openxlsx::saveWorkbook(wb = output_wb,
-                         file = here::here(stringr::str_c("posts/ML_in_excel/ml_in_excel.xlsx")),
-                         overwrite = T)
-  
-  message("Done")
+trees_df_iris_rf_clas  %>%
+  openxlsx::writeDataTable( wb = output_wb,
+                            sheet = "RF_classificationRules",
+                            x = .,
+                            startCol = 1,
+                            startRow = 1,
+                            tableStyle = "TableStyleLight9",
+                            tableName = "RF_classificationRules")
+
+
+# lm ----
+model_output_lm %>%
+  openxlsx::writeDataTable( wb = output_wb,
+                            sheet = "LM_regression",
+                            x = .,
+                            startCol = 1,
+                            startRow = 1,
+                            tableStyle = "TableStyleLight9",
+                            tableName = "LM_regression")
+
+trees_df_lm  %>%
+  openxlsx::writeDataTable( wb = output_wb,
+                            sheet = "LM_regressionRules",
+                            x = .,
+                            startCol = 1,
+                            startRow = 1,
+                            tableStyle = "TableStyleLight9",
+                            tableName = "LM_regressionRules")
+
+# RF regression tree ----
+model_output_iris_reg %>%
+  openxlsx::writeDataTable( wb = output_wb,
+                            sheet = "RF_regression",
+                            x = .,
+                            startCol = 1,
+                            startRow = 1,
+                            tableStyle = "TableStyleLight9",
+                            tableName = "RF_regression")
+trees_df_iris_rf_reg  %>%
+  openxlsx::writeDataTable( wb = output_wb,
+                            sheet = "RF_regressionRules",
+                            x = .,
+                            startCol = 1,
+                            startRow = 1,
+                            tableStyle = "TableStyleLight9",
+                            tableName = "RF_regressionRules")
+
+# xgboost tree ----
+model_output_iris_xgboost_reg %>%
+  openxlsx::writeDataTable( wb = output_wb,
+                            sheet = "XGB_regression",
+                            x = .,
+                            startCol = 1,
+                            startRow = 1,
+                            tableStyle = "TableStyleLight9",
+                            tableName = "XGB_regression")
+trees_df_iris_xgboost_reg  %>%
+  openxlsx::writeDataTable( wb = output_wb,
+                            sheet = "XGB_regressionRules",
+                            x = .,
+                            startCol = 1,
+                            startRow = 1,
+                            tableStyle = "TableStyleLight9",
+                            tableName = "XGB_regressionRules")
+
+
+# Save Excel workbook...
+openxlsx::saveWorkbook(wb = output_wb,
+                       file = here::here(stringr::str_c("posts/ML_in_excel/ml_in_excel.xlsx")),
+                       overwrite = T)
 
 ```
 
@@ -1060,22 +1075,37 @@ At the outset of this post I caveated my promise to "end up with something that 
 
 ## Hard limits: spreadsheets have limits on data
 
-Three big limits matter in this context the number of rows (often analagous to number of records in a dataframe), the number of columns (number of fields and calculations on the dataframe) and the number of characters you can enter into any individual cell (analogous to the complexity of any calculation you may wish to perform. Sure, you can write scripts in spreadsheets to undertaken tasks that would be overly cumbersome in the cells, but this is just taking one-step out of spreadsheets into the world of code and can be a sign that perhaps the spreadsheets are reaching their limit and alternative solutions could and should be considered.
+Some big limits matter in this context:
 
-In this post I've generated random forest of 50 decision trees. Each tree is implemented in a column in the spreadsheet. Often random forests have thousands of trees. The column limits are soon exhausted in such circumstances. Also, trees can be quite big, especially **regression trees**. The logic for big trees takes a lot of IF() functions in excel and much of my challenge in this post has been to shrink the decision tree logic such that meaninfully complex trees can fit in each cell in excel.
+-   The number of rows (often analogous to number of records in a data-frame)
+
+-   The number of columns (number of fields and calculations on the data-frame)
+
+-   The number of characters you can enter into any individual cell (analogous to the complexity of any calculation you may wish to perform.
+
+I've just checked the limits for Excel ([see here](https://support.microsoft.com/en-us/office/excel-specifications-and-limits-1672b34d-7043-467e-8e27-269d656771c3)) and I am honestly surprised how large these limits are nowadays, so perhaps the hard-limits would not be reached for most practical purposes but the .xlsx file sizes for any models pushing close to these limits would be enormous! Note:Sure, you can write scripts in spreadsheets to undertaken tasks that would be overly cumbersome in the cells, but this is just taking one-step out of spreadsheets into the world of code and can be a sign that perhaps the spreadsheets are reaching their limit and alternative solutions could and should be considered.
+
+In this post I've generated random forests of 50 decision trees. Each tree is implemented in a column in the spreadsheet. Often random forests have thousands of trees. Trees can be quite big, especially **regression trees**. The logic for big trees takes a lot of IF() functions in Excel and much of my challenge in this post has been to shrink the decision tree logic such that meaningfully complex trees can fit in each cell in Excel.
 
 ## Calculation limits: spreadsheets are reactive
 
-Reactivity is the spreadsheets ability to present the answers as soon as data changes, if you average the values in a range, when the data in the range changes, the averages changes automatically, the average *reacts* to the change of inputs. This works even if there's a long chain of calcs between the input and output. In large spreadsheets this reactivity soon turn from a blessing to a curse. other techniques optimise such calculations (e.g. lazy evaluation)
+Reactivity is the spreadsheets ability to present the answers as soon as data changes. For example, if you average the values in a range, when the data in the range changes, the averages changes automatically, the average *reacts* to the change of inputs. This feature is a real advantage in relatively simple use-cases but it works even if there's a long chain of calculations between the input and output. In large spreadsheets this reactivity soon turns from a blessing to a curse. Spreadsheets can have the auto-recalculation disable to improve performance but it's really just a work-around.
 
 ## Design limits: Spreadsheets entangle data and calculations
 
-Spreadsheets hold data *and* calculations (sure you can use power-query to push some of the calcs upstream into databases etc. but that's just a sticking plaster on this fundamental limitation. If spreadsheets were an italian restaurant, they would only ever serve spaghetti *with* sauce (data and calculations). Large-scale analytic solutions almost always allow separation of the spaghetti from the sauce, and even the ingredience of the sauce (data) from the recipe for making the sauce (algorithms). Separating data from business logic, from reporting becomes more and more important as the scale of the task increases. It has real value (see reusabilty limits below)
+Spreadsheets hold data *and* calculations. Sure, you can use power-query to push some of the calculations upstream into databases etc. but that's just a sticking plaster on this fundamental limitation. Separating data from business logic, from reporting becomes more and more important as the scale of the task increases. Large-scale analytic solutions almost always allow logical separation of data from algorithms and visualisations or reports. This separation has real value (see reusabilty limits below).
+
+Disentangling data from algorithms also significantly improves auditability. Anyone who has every found a rogue calculation change part-way down a long (and supposedly consistent) set of calculations will attest to the uncomfortable feeling it brings. The veracity of large spreadsheets is almost impossible to verify.
 
 ## Reusability limits: "Warning: This spreadsheet contains external links!"
 
-Spreadsheets do not promote modularisation or reusability. Linked spreadsheets *are* an option to allow modularisation, but there's a massive overhead that comes with such solutions and if you do not carefully honour that overhead the entire chain of spreadsheets becomes untrustworthy, un-auditable and unsustainable. I my experience linked spreadsheets are a sign of creeping growth in analytic or reporting capability that cries out for refactoring and reassessment.
+Spreadsheets do not promote modularisation or reusability. Linked spreadsheets *are* an option to allow modularisation, but there's a massive overhead that comes with such solutions. If you do not carefully honour that overhead the entire chain of spreadsheets becomes untrustworthy, unauditable and unsustainable. I my experience linked spreadsheets are a sign of creeping growth in analytic or reporting capability that cries out for re-factoring and reassessment.
+
 
 # Summary
 
-In this post I have shown how Machine Learning models can be loaded into Excel.
+In this post I have shown how Machine Learning models can be delivered in Excel. I have fitted the models outside Excel (in R), then pulled a summary of the model equations and converted them into excel formulae
+
+# For the coders
+
+All the code used in this and other posts are available [here](https://github.com/drleo037/quarto_blog).
