@@ -1047,12 +1047,12 @@ There are packages that make it easy to create an Excel workbook with multiple t
 output_wb <- openxlsx::createWorkbook(creator = "Leo Kiernan", subject = paste0("Ranger random forest model ", lubridate::now()))
 openxlsx::addWorksheet(output_wb, "README", tabColour = "blue")
 openxlsx::addWorksheet(output_wb, "RF_classification", tabColour = "orange")
-openxlsx::addWorksheet(output_wb, "RF_classificationRules", tabColour = "orange")
 openxlsx::addWorksheet(output_wb, "LM_regression", tabColour = "green")
-openxlsx::addWorksheet(output_wb, "LM_regressionRules", tabColour = "green")
 openxlsx::addWorksheet(output_wb, "RF_regression", tabColour = "red")
-openxlsx::addWorksheet(output_wb, "RF_regressionRules", tabColour = "red")
 openxlsx::addWorksheet(output_wb, "XGB_regression", tabColour = "purple")
+openxlsx::addWorksheet(output_wb, "RF_classificationRules", tabColour = "orange")
+openxlsx::addWorksheet(output_wb, "LM_regressionRules", tabColour = "green")
+openxlsx::addWorksheet(output_wb, "RF_regressionRules", tabColour = "red")
 openxlsx::addWorksheet(output_wb, "XGB_regressionRules", tabColour = "purple")
 
 # Populating Excel workbook... 
@@ -1061,12 +1061,12 @@ tribble(
   ~from, ~tab, ~info,
   "LAK", "README", "This sheet",
   "LAK", "RF_classification", "An example of a classification of Iris Species using random forest",
-  "LAK", "RF_classificationRules", "One row per tree in the classification random forest.  Easy-to-read SQL logic format",
   "LAK", "LM_regression", "An example of a regression to predict Petal Length using a linear model",
-  "LAK", "LM_regressionRules", "The internal equations in the linear model in an easy-to-read format",
   "LAK", "RF_regression", "An example of predicting Petal Length using random forest regression",
-  "LAK", "RF_regressionRules", "One row per tree in the regression random forest.  Easy-to-read SQL logic format",
     "LAK", "XGB_regression", "An example of predicting Petal Length using a xgboost regression",
+  "LAK", "RF_classificationRules", "One row per tree in the classification random forest.  Easy-to-read SQL logic format",
+  "LAK", "LM_regressionRules", "The internal equations in the linear model in an easy-to-read format",
+  "LAK", "RF_regressionRules", "One row per tree in the regression random forest.  Easy-to-read SQL logic format",
   "LAK", "XGB_regressionRules", "The single HUGE xgboost rule.  Easy-to-read SQL logic format"
 ) %>%
   mutate(Date = lubridate::now(), .before = 1) %>%
@@ -1139,6 +1139,8 @@ trees_df_iris_rf_reg  %>%
 model_output_iris_xgboost_reg %>%
   # one final hack to get xgboost working (it's a sum of components, not an average of trees)
   mutate(tree_best = str_replace(tree_best, "AVERAGE\\(", "SUM\\(")) %>%
+  # we've edited the tree_best column so we need to re-assert it is a formula
+  mutate_at(vars(starts_with("tree")), add.formula) %>%
   openxlsx::writeDataTable( wb = output_wb,
                             sheet = "XGB_regression",
                             x = .,
