@@ -247,8 +247,8 @@ The ML models can be quite difficult to understand. Again, the ML community have
 
 ```{r explore what is important when trying to classify iris Species }
     #  the importance is here: model_clas$variable.importance
-    model_clas %>% 
-      vip::vip(num_features = 20,  aesthetics = list(color = "grey50", fill = "lightblue"))
+model_clas %>% 
+  vip::vip(num_features = 20,  aesthetics = list(color = "grey50", fill = "lightblue"))
 ```
 
 The variable importance plot shows that the Petal length and width are much more valuable to know when trying to classify the *Species* of an iris than (say) sepal dimensions, and even more valuable than those noisy measurements I added to the dataset which had little or no linkage with anything.
@@ -319,9 +319,13 @@ sql_to_excel <- function(trees_df, input_df, n_sf = 3, squishit = T) {
       mutate(instruction = str_remove_all(instruction, paste0(" OR \\(`", col_name, "` IS NULL\\)")))
   }
 
-  # one last bit   
-  trees_df <- trees_df %>%
-    mutate(instruction = str_remove_all(instruction, "0.0 \\+ "))
+  if(F) {
+    # one last bit   
+    trees_df <- trees_df %>%
+      # we dont need any 0.0 + lines
+      mutate(instruction = str_remove_all(instruction, "0.0 \\+ "))
+    
+  }
   
   equations_in_cols_a <- trees_df %>%
     # adapt
@@ -333,7 +337,6 @@ sql_to_excel <- function(trees_df, input_df, n_sf = 3, squishit = T) {
     mutate(instruction = str_replace_all(instruction, "WHEN", ", IF(AND")) %>%
     mutate(instruction = str_replace_all(instruction, "THEN", ", ")) %>%
     mutate(instruction = str_replace_all(instruction, "END", ", 'SHOULDNTHAPPEN'")) %>%
-    #  mutate(instruction = str_replace_all(instruction, "\n", ", ")) %>%
     mutate(end = str_pad(string = "", width = n_parts, side = "right", pad = ")"), .after = n_parts) %>%
     mutate(output = paste0(instruction, end)) %>%
     mutate(output = str_replace_all(output, "'", '"')) %>%
@@ -368,7 +371,7 @@ sql_to_excel <- function(trees_df, input_df, n_sf = 3, squishit = T) {
   # (these will be the col titles) in Excel)
   # AND ...
   # we want to substitute the original variable names in the equations
-  # with the correspondinh Excel column references
+  # with the corresponding Excel column references
   equations_in_cols <- equations_in_cols_a %>%
     # make a reference to the column names...
     mutate(tree_number = row_number()) %>%
@@ -659,7 +662,7 @@ model_reg
 
 It's always a good idea to plot the model's performance:
 
-```{r scatterplot of simple ranger model, warning=FALSE, message=FALSE}
+```{r scatterplot of ranger model, warning=FALSE, message=FALSE}
 # then do a quick check on teh output
 pred.iris <- stats::predict(model_reg, data = iris_reg_test)
 bind_cols(iris_reg_test$Petal.Length, pred.iris$predictions) %>%
@@ -669,7 +672,10 @@ bind_cols(iris_reg_test$Petal.Length, pred.iris$predictions) %>%
   ggpubr::stat_regline_equation(aes(label =  paste(after_stat(eq.label),
                                                    after_stat(adj.rr.label), sep = "~~~~"))) + 
   geom_smooth(method = "lm") +
-  geom_abline(slope = 1, intercept = 0)
+  geom_abline(slope = 1, intercept = 0) +
+  labs(title = "The random forest model is good a predicting Petal.Length",
+     subtitle = "This plot shows performance on unseen data",
+     x = "Actual Petal Length", y = "Model estimate of Petal Length")
 
 ```
 
@@ -702,23 +708,66 @@ tidypredict::tidypredict_sql(model_reg, dbplyr::simulate_dbi())[2]
 
 ```
 
-## Bonus: xgboost (almost)
+The second tree from the random forest regression model is also very large, but as we'll soon see, xgboost models can be even larger...
 
-```{r}
+## Regression using XGBOOST
+
+Xgboost (eXtreme Gradient BOOSTed trees) appeared a few years ago and began to systematically beat other ML methods in many classification and regression tasks.
+
+Xgboost is "tree-shaped" but works differently to random forests. It works by attempting to build a strong classifier from the number of weak classifiers. The model is made up of weak models in series. Each subsequent model attempts to correct the errors remaining from the previous stage ([see here for a description](https://www.geeksforgeeks.org/xgboost/)).
+
+Fitting an xgboost model is easy... (but optimising it is a little more involved as described [here](https://juliasilge.com/blog/xgboost-tune-volleyball/)).
+
+```{r fit an xgboost regression model }
 # xgboost regression (works,  but the SQL needs extra work to convert into excel) ----
 library(parsnip)
 
 model_reg_xgboost <- boost_tree(mode = "regression") %>%
   set_engine("xgboost") %>%
   fit(Petal.Length ~ . - Species, data = iris_reg_train)
+```
+
+In the above example, the algorithm had 15 goes at correcting itself before terminating. This means that:
+
+-   SQL representing the xgboost model has 15 sets of CASE WHEN statements, or "trees". Each tree tweaks the result given by all previous trees a little until the model output is complete.
+
+-   The overall answer is the SUM of these answers, not the average as was the case with Random Forests.
+
+The model can still be inspected to find out what it found important:
+
+```{r important variables accourding to the xgboost model}
+
+model_reg_xgboost %>% 
+      vip::vip(num_features = 20,  aesthetics = list(color = "grey50", fill = "lightblue"))
 
 ```
+
+Its interesting that the xgboost importance is different to the random forest and linear models. The model is good as shown in the scatterplot below:
+
+```{r scatterplot ofxgboost model, warning=FALSE, message=FALSE}
+# then do a quick check on teh output
+pred.iris <- predict(model_reg_xgboost, iris_reg_test)
+bind_cols(iris_reg_test$Petal.Length, pred.iris) %>%
+  rename(actual = ...1, pred = .pred) %>%
+  ggplot(aes(actual, pred)) +
+  geom_point() +
+  ggpubr::stat_regline_equation(aes(label =  paste(after_stat(eq.label),
+                                                   after_stat(adj.rr.label), sep = "~~~~"))) + 
+  geom_smooth(method = "lm") +
+  geom_abline(slope = 1, intercept = 0) +
+  labs(title = "The xgboost model is good a predicting Petal.Length",
+       subtitle = "This plot shows performance on unseen data",
+       x = "Actual Petal Length", y = "Model estimate of Petal Length")
+
+```
+
+However, the set of rules that generates the result is `r nchar(tidypredict::tidypredict_sql(model_reg_xgboost, dbplyr::simulate_dbi()) %>% unlist() %>% as.character())` characters long and utterly impenetrable! Have a look at the spreadsheet I've generated if you're interested. because it's so long it is too large to be evaluated in Excel. To shoehorn this model into Excel I have hacked some logic to treat it as it if was 15 different trees, then adapted the summary to add rather than average the trees. It's all in the code if anyone really want to see how I managed it.
 
 # Getting the models into Excel
 
 So far I have:
 
-1.  Fitted a few models: one random forest of decision trees for classification and one for regression, and an extra linear model for regression.
+1.  Fitted a few models: one random forest of decision trees for classification and one for regression, and an extra linear model for regression and a model based on xgboost.
 
 2.  Translated these models into if() logic that Excel can execute
 
@@ -841,7 +890,7 @@ augment_df_with_rules <- function(models, in_df, target = NA, method = "classifi
 
 Let's use those functions to build the final data-frames contains everything we need to write to Excel...
 
-```{r prepping the models to be understandable in Excel }
+```{r prepping the models to be understandable in Excel, warning=FALSE, message=FALSE}
 
 #| turn the tidypredict_sql for all the trees into a tidy dataframe
 
@@ -886,13 +935,54 @@ model_output_iris_reg <- augment_df_with_rules(models = randforest_reg,
 
 # xgboost regression in Excel format ----
 # get the rules
+raw_xbg_rules <- tidypredict::tidypredict_sql(model_reg_xgboost, dbplyr::simulate_dbi()) %>%
+  unlist() %>%
+  as.character() 
+# xgboost adds a constant at te end of it's logic
+# and my sql_to_excel function doesn't handle it well *it nests it at an unused ent of an if statement_
+# Im hacking now to make this work... I'll ... erm...
+# 1) separate if from the rest of the formula
+# handle the first part as normal(ish)
+# and add it as a lonesome rule at the end
+last_part <- sub(".+\\s([\\+\\-]\\s*[0-9\\.]+)$", "\\1", raw_xbg_rules)
+first_part <- str_replace(raw_xbg_rules, paste0("\\", last_part), "")
 
-trees_df_iris_xgboost_reg <- tidypredict::tidypredict_sql(model_reg_xgboost, dbplyr::simulate_dbi()) %>%
+trees_df_iris_xgboost_reg <- first_part %>%
   tibble::enframe(name = NULL, value = "instruction") %>%
-  mutate(instruction = unlist(instruction))
-
+  mutate(instruction = unlist(instruction)) %>%
+  # extra steps needed to tidy the format of the xgboost tidypredict_sql
+  # we dont need any 0.0 + lines
+  mutate(instruction = str_remove_all(instruction, "0.0 \\+ ")) %>%
+ #  remove all leading brackets
+  mutate(instruction = str_remove(instruction, "^\\(+")) %>%
+  #  parts of the tree are additive, so te tree is *very* long (and exceeds the token limit in LibreOffice)
+  # so I've decided to split the additive components into separate rows
+  # as if the are their own separate trees
+  # NOTE: in random forests we AVERAGE the trees, in xgboost we must ADD the trees
+  separate_rows(instruction, sep = "\\+ CASE") %>%
+  # the first CASE is still here..., I'll delete it..
+  mutate(instruction = str_remove(instruction, "CASE")) %>%
+  #  we need to put the "CASE" back!
+  # I used to split the single rule (on that specific "+") into many separate ones 
+  # but now need it back for the logic to make sense
+  mutate(instruction = paste0("CASE", instruction))
+  
 # convert the rules to Excel format 
-xgboost_reg <- sql_to_excel(trees_df = trees_df_iris_xgboost_reg, input_df = iris_reg_train)
+xgboost_reg <- sql_to_excel(trees_df = trees_df_iris_xgboost_reg, input_df = iris_reg_train) %>%
+  pivot_longer(cols = everything(), names_to = "tree", values_to = "instruction") %>%
+  # remove the last bracket (dont know why ther's an extra one
+  # maybe there's a linefeed at the end of each additive part of xgboost)
+  mutate(len_before = str_length(instruction), .before = tree) %>%
+  mutate(instruction = str_remove(instruction, "\\)$")) %>%
+  mutate(len_after = str_length(instruction), .before = tree) %>%
+  select(-c(len_before, len_after)) %>%
+  bind_rows(
+    paste0("= ", last_part) %>%
+      enframe(name = NULL, value = "instruction") %>%
+      mutate(tree = "tree_const", .before = 1)
+  ) %>%
+  pivot_wider(names_from = "tree", values_from = "instruction")
+  
 model_output_iris_xgboost_reg <- augment_df_with_rules(models = xgboost_reg,
                                                in_df = iris_n_noise_reg,
                                                target = "Petal.Length",
@@ -970,12 +1060,14 @@ openxlsx::addWorksheet(output_wb, "XGB_regressionRules", tabColour = "purple")
 tribble(
   ~from, ~tab, ~info,
   "LAK", "README", "This sheet",
-  "LAK", "classification", "An example of a classification of Iris Species using random forest",
-  "LAK", "classificationRules", "One row per tree in the classification random forest.  Easy-to-read SQL logic format",
-  "LAK", "lm", "An example of a regression to predict Petal Length using a linear model",
-  "LAK", "lmRules", "The internal equations in the linear model in an easy-to-read format",
-  "LAK", "regression", "An example of predicting Petal Length a regression random forest",
-  "LAK", "regressionRules", "One row per tree in the regression random forest.  Easy-to-read SQL logic format"
+  "LAK", "RF_classification", "An example of a classification of Iris Species using random forest",
+  "LAK", "RF_classificationRules", "One row per tree in the classification random forest.  Easy-to-read SQL logic format",
+  "LAK", "LM_regression", "An example of a regression to predict Petal Length using a linear model",
+  "LAK", "LM_regressionRules", "The internal equations in the linear model in an easy-to-read format",
+  "LAK", "RF_regression", "An example of predicting Petal Length using random forest regression",
+  "LAK", "RF_regressionRules", "One row per tree in the regression random forest.  Easy-to-read SQL logic format",
+    "LAK", "XGB_regression", "An example of predicting Petal Length using a xgboost regression",
+  "LAK", "XGB_regressionRules", "The single HUGE xgboost rule.  Easy-to-read SQL logic format"
 ) %>%
   mutate(Date = lubridate::now(), .before = 1) %>%
   openxlsx::writeDataTable( wb = output_wb,
@@ -1045,6 +1137,8 @@ trees_df_iris_rf_reg  %>%
 
 # xgboost tree ----
 model_output_iris_xgboost_reg %>%
+  # one final hack to get xgboost working (it's a sum of components, not an average of trees)
+  mutate(tree_best = str_replace(tree_best, "AVERAGE\\(", "SUM\\(")) %>%
   openxlsx::writeDataTable( wb = output_wb,
                             sheet = "XGB_regression",
                             x = .,
@@ -1052,7 +1146,10 @@ model_output_iris_xgboost_reg %>%
                             startRow = 1,
                             tableStyle = "TableStyleLight9",
                             tableName = "XGB_regression")
-trees_df_iris_xgboost_reg  %>%
+# xgboost is "different". I'll show the raw output
+tidypredict::tidypredict_sql(model_reg_xgboost, dbplyr::simulate_dbi()) %>%
+  tibble::enframe(name = NULL, value = "instruction") %>%
+  mutate(instruction = unlist(instruction))  %>%
   openxlsx::writeDataTable( wb = output_wb,
                             sheet = "XGB_regressionRules",
                             x = .,
@@ -1100,7 +1197,6 @@ Disentangling data from algorithms also significantly improves auditability. Any
 ## Reusability limits: "Warning: This spreadsheet contains external links!"
 
 Spreadsheets do not promote modularisation or reusability. Linked spreadsheets *are* an option to allow modularisation, but there's a massive overhead that comes with such solutions. If you do not carefully honour that overhead the entire chain of spreadsheets becomes untrustworthy, unauditable and unsustainable. I my experience linked spreadsheets are a sign of creeping growth in analytic or reporting capability that cries out for re-factoring and reassessment.
-
 
 # Summary
 
