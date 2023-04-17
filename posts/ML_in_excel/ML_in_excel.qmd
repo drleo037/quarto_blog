@@ -11,9 +11,7 @@ format:
 categories: [code, analysis, excel, ML, AI, LM, randomForests, classification, regression]
 ---
 
-> **"This post could be of benefit to hundreds of thousands of people..." ;-P**
->
-> **...maybe**
+> **"This post could be of benefit to hundreds of thousands of people..."** (**...maybe.) ;-P**
 
 # Overview
 
