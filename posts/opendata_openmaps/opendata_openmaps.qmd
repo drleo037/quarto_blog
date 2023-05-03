@@ -1,0 +1,294 @@
+---
+title: "Open data (part five): Some potential uses of Open Mapping Data"
+author: "Leo Kiernan"
+date: "2023-05-02"
+draft: true
+image: river-loadings.png
+toc: true
+format: 
+  html:
+    code-fold: true
+categories: [code, analysis, OSM, opendata, GIS, feature engineering, unaccounted for water]
+---
+
+# Overview of this post
+
+In this post I am going to explore opendata for mapping and geospatial analysis. I'll be using two awesome source from the [OpenStreetMap](https://www.openstreetmap.org/) and [Ordnance Survey](https://www.ordnancesurvey.co.uk/). These datasets are immense (both in termds of bytes and in terms of content! OpenStreetMap data is available under the Open Database License, as defined in [this copyright page](https://www.openstreetmap.org/copyright). The OS data open data products are covered by the [Open Government Licence](http://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/).
+
+To provide some focus, I will explore the datasets from as if I were trying to use them to help in a hunt for leakage in a UK water utility.
+
+As an overview of this post I will be:
+
+-   Setting the scene... explain the problem domain I'll be focussing on.
+
+-   Collecting and exploring opendata made available in OSM and OS.
+
+-   Mining the datasets for some useful metrics and features.
+
+-   Using these data, metrics and features to highlight geographic areas that:
+
+    -   May be prone water loss
+
+    -   Might make it difficult to confidently differentiate between usage or leakage.
+
+Dont expect the answers to life-the-unverse-and-everything here, the domain is vast and I'm not going to have any real-world water data to contextualise using the opendata. I really will only scratch the surface in a necessairly simplistic way, but on the way I hope to highlight some sources of uncertainty can be investigated and resolved. In doing so, perhaps the targeting of leakage detection might be triaged appropriately into: prioritisation, deeper investigation, resolution of ambiguities and ultimately more efficient reduction of water leakage.
+
+# Context
+
+## Leakage
+
+I'm going to skip most of the detail of context, and refer the reader interested in detail to some excellent resources in pdfs here: [A leakage routemap to 2050](https://www.water.org.uk/publication/a-leakage-routemap-to-2050/), but I'll try to boil the main points in the following section.
+
+1.  Leaks are unintentional losses from water networks. They can range in size but generally, the water is lost from broken pipes, joints etc.
+2.  There's not enough water available in the UK to tolerate much being lost through leakage in the pipe networks.
+3.  Finding (and subsequently fixing) the leaks in the network is complicated.
+    1.  Most leaks are unseen, underground on buried pipe network.
+    2.  Leaks are often very near (or even on) points in the network where water is taken legitimately.
+    3.  Flow of water around the network is not fully metered so it's often hard to know where water is going, much less whether it's being consumed as usage or lost through leakage when it gets there.
+
+To expand on that last point... **flow of water around the network is not full metered.** In general "how much goes in" *is* metered, but there are many branches in the network and even nowadays, only some of the branches are metered, as are fewer than half of the legitimate exit points. The water industry is quite resourceful in how it might infer where the water is going without directly measuring flow. Methods include statistical modelled to infer consumption from known, but unmetered end-points, satellite leak detection, listening to noise from the network, measuring network pressure etc.) There are technologies emerging that can be deployed inside pipes which could highlight places where the water leaving the pipe but shouldn't, however when there are many thousands of kilometres of pipe to explore, how do you narrow down the search to areas that are most likely to yield results?
+
+If the flow of water through all pipes *was* measured, then one might imagine a simple mass-balance being usable to narrow-down losses... "x litres went into that pipe yesterday, but only y was actually measured leaving the pipe where it was supposed to... So there's (x-y) litres being leaked. This works well for production lines and long pipeslines, but in heavily interconnected networks things get quite complicated quite quickly. That leakge routemap described in detail
+
+## OpenStreetmap
+
+[OpenStreetMap](https://www.openstreetmap.org/about) has been described as 'a cartographical wikipedia'. In turn,[Wikipedia](https://en.wikipedia.org/wiki/OpenStreetMap) describes [OpenStreetMap](https://www.openstreetmap.org/about) as a free, open geographic database updated and maintained by a community of volunteers via open collaboration. It's huge, 1.6 TB at the time of writing (you can download the lot if tyou really want to as detailed here: [HOW TO DOWNLOAD DATA FROM OPEN STREET MAP -- A COMPLETE GUIDE](https://mapscaping.com/how-to-download-data-from-open-street-map-a-complete-guide/#:~:text=At%20the%20time%20of%20writing%2C%20it%20has%20a,118%20GB%20when%20compressed%20and%201.6TB%20when%20uncompressed.))
+
+It holds structured geospatial data on natural and man-made features across the world. Detail range from local [coffee-shops](https://www.openstreetmap.org/query?lat=51.46993&lon=-1.04427), through to [route 66](https://www.openstreetmap.org/search?query=route%2066#map=19/35.17156/-103.66867) and [Mount Etna](https://www.openstreetmap.org/search?query=mount%20etna%20sicily#map=11/37.7490/14.9788). It's not just a map, each entry can contain detail like associated URLs, alternative names, etc.
+
+Note: Strong opinions are associated with OpenStreetmap. Some in support, some as detractors. I've included a couple below for balance. If you are thinking about using this dataset it is well worth reading both sides of the argument for / against.
+
+-   [Why the world needs OpenStreetMap \| Mapping technologies \| The Guardian](https://www.theguardian.com/technology/2014/jan/14/why-the-world-needs-openstreetmap)
+
+-   [Why OpenStreetMap is in Serious Trouble --- Emacsen's Blog](https://blog.emacsen.net/blog/2018/02/16/osm-is-in-trouble/)
+
+What is without doubt, is that there are time when crowd-sourcing and opendata can really shine, as was the case during the terrible aftermath of the earthquake in Haiti in 2010 when openstreetmap became an invaluable tool for understanding the ground-truth. 50,000 people from around the world re-mapped Haiti's transport networks and detail of the capital as [documented in this video](https://youtu.be/hqkEtyjj_hY).
+
+## 
+
+OS Zoomstack
+
+[Zoomstack](https://osdatahub.os.uk/downloads/open/OpenZoomstack) is another amazing opendata resource, this time provided and support by the Ordnance survey. It is part of a whole range of other [open datasets provided by OS](https://osdatahub.os.uk/downloads/open). zommstack comes as Geopackage or vectorLayers and can be visualised in GIS (e.g. [QGIS](https://www.qgis.org/en/site/)using [open styling from GIT](https://github.com/OrdnanceSurvey/OS-Open-Zoomstack-Stylesheets), there's an excellent guide on [adding OS open Zoomstack to QGIS here](https://www.linkedin.com/pulse/add-os-open-zoomstack-geopackage-qgis-elaine-owen/)) it's worth noting that the [OS also provides many other datasets](https://www.ordnancesurvey.co.uk/business-government/products) (some paid) including MasterMap and AddressBasePremium. These layers decorate the base UIDs provided in the opendata datasets with some extremely useful detail. Other mapping firms also sell layers that can help contextualise anything from where to locate a new shop to what kind of soil might be under your feet.
+
+## How can OpenStreetMap / Zoomstack data help find leakage
+
+As described in the section, introducing leakage targeting leakage requires knowledge of what *is not* leakage, i.e. legitimate consumption. OpenStreetmap and Zoomstack contain much information that can help contextualise leakage through the lens of consumption.
+
+It should be noted that in the real-world, many other datasets could and should be made available to contextualise leakage. For instance,
+
+-   Internal datasets:
+
+    -   Asset data: water companies will have detail on the pipe-assets including location, age, material etc.) which can help highlight parts of the network that are prone to leakage. Some pipes may have have been refurbished or even replaced, so the history of the assets can be valuable too.
+
+    -   Operational data: how the network is / has been operated can impact failure rates and hence leakage. pressure regimes, valve operations, historic repair data all contribute to the pool of evidence that could be useful when targeting leakage.
+
+-   Environmental conditions:
+
+    -   Soils interact with pipes to make them more likely to fail (e.g through corrosion), more or less likely to leak (soil types such as clay can act as a barrier or even as a channel for leakage). It is possible to purchase maps of soil-types).
+
+    -   Prevailing weather can influence leakage. Certain types of pipe in certain layouts can be vulnerable to different weathers. Cold weather is known to increase the chance of pipe failure, as is the soil-moisture deficit (which can cause movement in soils which in turn can affect pipes and ultimately drive failure).
+
+Lets return to OSM and zoomstack and consider two possible sources of insight that might affect where one might search for leakage:
+
+## Example: Highlight places that may be prone to leakage
+
+For this I will explore Allotments. I was inspired by this excellent [blog post](https://sme-water.co.uk/demand-insights-using-open-source-data/) to explore allotments. The post focussed on improving understanding of consumption by
+
+## Example: Highlighting places where network connectivity might be complex
+
+Places where it may be difficult to know the true state of network configuration and or legimiate consumption. To illustrate this, I will explore areas that may have complex internal pipe-configurations such as hospitals or other areas wihc hmay have multiple buildings (and hence private networks of pipes) that may not be fully understood by the water utility in charge of the area.
+
+# Theme: Reducing uncertainty
+
+Leakage targeting (as with many other fields) is optimised by good use of data. In the hunt for leakage, one might focus attention in areas where leakage is high. However, bearing in mind that leakage is not directly measured, targeting is vulnerable to assumptions about the components of the leakage calculation.
+
+So, to minimise leakage I might chose to target an area that has the largest among or leakage (normalised in some way against length of pipe of number of connections or whatever). With perfect information , this is undoubtedly a solid campaign strategy. However, in the presence of uncertainty, the confidence in the yield will begin to fade.
+
+For illustration lets pretend I'm tasked with reducing leakage in 'Anytown'. Anytown has been divided up into four equal-sized areas. I've only got enough resources to look for the location of leaks in one area and according to my computer, a water-balance (where consumption is deducted from total area in-flow) report:
+
+| Area      | Measured demand (l/s) | Estimated Consumption (l/s) | reported leakage (l/s) |
+|-----------------|-----------------|----------------------|-----------------|
+| Anytown_1 | 1                     | 1                           | 0.0                    |
+| Anytown_2 | 2                     | 1                           | 1.0                    |
+| Anytown_3 | 2                     | 1                           | 1.0                    |
+| Anytown_4 | 3                     | 1                           | 2.0                    |
+
+I know that this is naiive... In the real-world there local knowledge, extra information about the layouts of the areas, other figures like total demand and consumption etc, a concept of "operability". All of these things would help me to judge how much to believe the figures and hence where to go first
+
+andTaken to an extreme, imagine I manage three areas...:
+
+Area 1 has low reported leakage
+
+Areas 2 and three have identical levels of high reported leakage
+
+The allotments and private networks examples I've explored above are just two examples of conditions where some areas may be more prone to error than others. I propose that opendata could help contextualise what is being presented to someone targeting leakage.
+
+## Thought experiment: Should I target this area or that area?
+
+Thought experiment: Do I act or find out more?
+
+# Finding Allotments
+
+First there's the obligatory step of loading the libraries that I'll be using throughout this post:
+
+```{r load the libraries used within this demo, output = FALSE, warning = FALSE, message = FALSE}
+
+library(tidyverse)  # this blog uses the tidyverse
+library(lubridate)  # I'm sure lubridate has been added to the tidyverse, old habits die hard
+library(httr)       # we will use this to collect data from the internet
+library(sf)         # I'm going to plot some maps. sf helps with any spatial stuff
+library(leaflet)    # I like the interactivity of leaflet, but there are many other packages to plot maps.
+library(DT) # for niely interactive tables
+library(crosstalk) # for joining htmlwidgets like DT and leaflet
+library(htmltools) # I'll use this to customise some tables in the code
+library(osmdata) # this package mapes getting small datasets from OSM simple and quick
+sigfig <- function(x, nsmall = 2) {
+  format(round(x, nsmall), nsmall = nsmall)
+}
+```
+
+## Exploring OSM: Allotments
+
+The OSM dataset has lots of features (including allotments, and other potentially useful categories)
+
+```{r exploring OSM data}
+
+  # Let’s start by looking at what kind of data are available through OpenStreetMap. I usually start with available_features() to see the top-level data organization:
+  # list the features of osm data
+  osmdata::available_features()
+```
+
+```{r}
+  #| Note that not all features have attributes.
+  #| For example, the feature “allotments” has no additional attributes; when you run available_tags() on a feature without those additional attributes, the output will be character(0):
+  available_tags(feature = "allotments")
+  # note: there are lots of amenities (including hospital and college and university)
+
+```
+
+## Exploring Zoomstack: Allotments
+
+```{r}
+# sf::st_layers(system.file("C:/Users/leoki/DATA/OS/OS_Open_Zoomstack/OS_Open_Zoomstack.gpkg", "sf"))
+```
+
+```{r}
+#
+```
+
+```{r}
+focus_area <- 'reading uk'
+# Use the bounding box defined for reading by OSM
+focus_boundary <- getbb(focus_area)
+# Print the matrix to the console
+focus_boundary
+
+if(F) {
+  # note: I could've also asked for the actual polygon
+  # but collecting the BB data uses it's extents
+  focus_boundary <- getbb(place_name = focus_area, format_out = 'polygon')
+  # Print the matrix to the console
+  focus_boundary
+}
+
+```
+
+```{r read allotments in Reading from }
+# Query for reading allotments
+tictoc::tic()
+focus_allotments <- focus_boundary %>%
+  opq() %>%
+  add_osm_feature(key = "landuse", value = "allotments") %>%
+  osmdata_sf()
+tictoc::toc()
+```
+
+```{r}
+
+all_zoomstack_allotments = sf::st_read(dsn = "c:/Users/leoki/DATA/OS/OS_Open_Zoomstack/OS_Open_Zoomstack.gpkg",
+                 layer = "greenspace",
+                 query = "SELECT * FROM \"greenspace\" WHERE type = 'Allotments Or Community Growing Spaces'") %>%
+  st_transform(crs = st_crs(4326))
+
+# the followinf code just converts the coords of the focus_boundary into a
+# an SF polygon (rectangle) in the right projection
+# so I can clip the zoomstack results to those intersecting
+# (containing ot touching)
+sf_bb <- focus_boundary %>%
+      t() %>%
+      as_tibble() %>%
+      st_as_sf(coords = c("x", "y"), 
+               crs = 4326) %>% 
+      st_bbox() %>% 
+      st_as_sfc()
+
+zs_allotments <- sf::st_filter(all_zoomstack_allotments,sf_bb) %>%
+  mutate(area = st_area(geom))
+
+
+```
+
+```         
+```
+
+Make an interactive dashboard of results
+
+```{r crosstalk interactivity between maps and tables of allotments}
+
+osm_groupname <- str_c("OSM Allotments in ", focus_area)
+zs_groupname <- str_c("Zoomstack Allotments in ", focus_area)
+
+
+# Wrap data frame in SharedData
+sd <- SharedData$new(focus_allotments$osm_polygons %>%
+                       mutate(area = sf::st_area(geometry)) %>%
+                       remove_rownames() %>%
+                       select(name, landuse, operator, contact = `contact:facebook`, area)
+)
+
+# Create a filter input
+crosstalk::filter_slider("area", "Allotment Area (m2)",
+                         sd,
+                         column=~as.numeric(area),
+                         step=100, width=250)
+
+# Use SharedData like a dataframe with Crosstalk-enabled widgets
+leaflet() %>%
+  addTiles(group = "OSM (default)") %>%
+  addPolygons(data = sd,
+              group = osm_groupname,
+              color = "red",
+              label = ~paste0(name, " - ", sigfig(area))
+              ) %>%
+  addPolygons(data = zs_allotments,
+              group = zs_groupname,
+              color = "orange",
+              label = ~paste0("Allotments Or CGS - ", sigfig(area))
+              ) %>%
+  addLayersControl(
+    overlayGroups = c(osm_groupname, zs_groupname),
+    options = layersControlOptions(collapsed = FALSE)
+  )
+datatable(sd, extensions="Scroller", style="bootstrap", class="compact", width="100%",
+    options=list(deferRender=TRUE, scrollY=300, scroller=TRUE)
+    )
+
+```
+
+# Summary
+
+In this post I've explored open data for mapping made available by the Ordnance Survey and OSM. I have only really scratched the surface but is does look very useful for all sorts of purposes.
+
+Hopefully I've:
+
+-   shown how to collect and visualise the mapping data
+
+-   shown how to extract features of interest and adapt the data to generate useful statistics such as areas, connectivity and some sense of complexity
+
+-   alluded to how this data could prove useful when joined with other sources of open-data
+
+# Where next?
+
+I'm not sure yet, but I've always had a desired to explore the world and find the centre of everything :-)
+
+good luck on your own adventures into opendata.

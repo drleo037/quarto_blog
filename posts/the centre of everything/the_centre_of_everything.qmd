@@ -1,0 +1,381 @@
+---
+title: "The centre of everything"
+author: "Leo Kiernan"
+date: "2023-04-27"
+draft: true
+toc: true
+format: 
+  html:
+    code-fold: true
+categories: [code, analysis, maps, opendata]
+---
+
+```{r label: load libraries, output = FALSE, warning = FALSE, message=FALSE}
+library(tidyverse)
+library(sf)
+```
+
+It's a grand title, but this post explores mapping a little with the theme of visualizing the 'centre' of every country in the world. I'll be standing on the shoulders of [Drawing beautiful maps programmatically with R, sf and ggplot2 --- Part 1: Basics (r-spatial.org)](https://r-spatial.org/r/2018/10/25/ggplot2-sf.html) to get off the ground...
+
+```{r label: load map libraries and world dataset, output = FALSE, warning = FALSE}
+
+world <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf") %>%
+  mutate(name = admin)
+
+```
+
+# Explore the world
+
+Here's something I've always wanted to do... Explore the world! BI tools like Tableau and powerBI etc. R has a few good interactive apps. My favourites include explore::explore() and esquisse::esquisser(). I cant show you interactive plots in this post, but they are a great intuitive way to get to know your data. Trust me, the first things to note is that the dataset has a *lot* of fields. I've selected records marked as having French soverinty in the table below. For this post I'm only going to use the ones associated with the names of the countries.
+
+```{r label: explore the world}
+
+# here's something I've always wanted to do..
+# explore the world!
+# explore::explore() is a wonderful interactive way to explore
+if(F) {
+  world %>%
+    select(-geometry) %>%
+    tibble::as_tibble() %>%
+    explore::explore()
+  
+    DataExplorer::create_report(world)
+  
+  world %>%
+    select(-geometry) %>%
+    tibble::as_tibble() %>%
+    explore::explore()
+  
+  world %>%
+    select(mapcolor7) %>%
+    plot()
+   world %>%
+     sf::st_transform(crs = sf::st_crs(4326)) %>%
+     st_cast("POLYGON") %>%
+     mutate(geometry = sf::st_make_valid(geometry)) %>%
+     mutate(area = as.numeric(st_area(sf::st_make_valid(geometry)))) %>%
+     esquisse::esquisser()
+  
+}
+
+# I cant show the output in a blog-post,  but do give it a try
+# on something like:
+# explore::explore(iris)
+
+world %>%
+  filter(sovereignt == "France") %>%
+  DT::datatable() %>%
+  # https://stackoverflow.com/questions/31921238/shrink-dtdatatableoutput-size
+  htmltools::div(style = "font-size: 75%")
+```
+
+There are lots of ways visualise maps. I start with {ggplot2}
+
+```{r label: plot the world using ggplot, message = FALSE, warning = FALSE}
+library(ggplot2)
+ggplot() +
+  geom_sf(data = world) +
+  geom_sf(data = world %>% mutate(geometry = sf::st_centroid(sf::st_make_valid(geometry))))
+```
+
+I like the leaflet package for interactive maps. Here's that map again, this time focussing on French parts
+
+```{r label: useful function makeHTML, message = FALSE, warning = FALSE }
+# credit to people like:
+# https://rdrr.io/github/dkneis/diatools/src/R/makeHTML.r
+library(sf)
+makeHTML <- function(htmlText){
+  attr(htmlText, "html") <- TRUE
+  class(htmlText) <- c("html", "character")
+  htmlText
+}
+
+buildGoogleMapsURLFromLatLong <- function(myLati, myLongi) {
+  result <- paste0('<br>',
+                   '<a href="https://www.google.co.uk/maps/@', 
+                   gsub(" ", "", format(round(myLati, 8), nsmall = 8)),
+                   ",", 
+                   gsub(" ", "", format(round(myLongi, 8), nsmall = 8)), 
+                   ',19z" .external target="_blank" rel = "noopener noreferrer nofollow" >',
+                   'Show in Googlemaps</a>')
+}
+
+buildGoogleMapsURLFromStGeom <- function(thisGeom) {
+  xy <- st_coordinates(thisGeom)
+  theRes <- buildGoogleMapsURLFromLatLong(xy[,2], xy[,1])
+}
+
+```
+
+```{r label: plot france using leaflet to make things easier to explore, message = FALSE, warning = FALSE}
+library(leaflet)
+
+world_map <- leaflet() %>%
+    addTiles(group = "Esri.WorldGrayCanvas") %>% # use a plain background map
+    addPolygons(data = world %>%
+                  filter(sovereignt == "France") %>%
+#                  filter(name == "France") %>%
+                  sf::st_transform(crs = sf::st_crs(4326)),
+                label = ~makeHTML(paste0("Polygon",
+                                         "<br>",
+                                         "sovereignt: ", sovereignt,
+                                         "<br>", 
+                                        "name: ", name))
+                ) %>%
+  addMarkers(data = world %>%
+                  filter(sovereignt == "France") %>%
+                  mutate(geometry = sf::st_centroid(sf::st_make_valid(geometry))) %>%
+                  mutate(geometry = sf::st_transform(geometry, crs = sf::st_crs(4326))),
+                  clusterOptions = markerClusterOptions(),
+                  label = ~makeHTML(paste0("Centroid",
+                                         "<br>",
+                                         "sovereignt: ", sovereignt,
+                                         "<br>", 
+                                        "name: ", name))
+        )
+
+
+world_map
+```
+
+Notice that some of the markers apparently showing the centre of places under French sovereignty are in strange places. There's one point in the north of Spain. This is because some records (individual rows) actually contain polygons for more than one distinct place. What I have inadverterntily done is to find the centre of a number of polygons covering all the land registered with a country. For illustration: Notice when we filter name = "France" we something called a "multipolygon".
+
+```{r label: investigate France as a single row, message = FALSE, warning = FALSE}
+world %>%
+  filter(name == "France") %>%
+  rownames_to_column("row_names") %>%
+  select(name, row_names, geometry)
+
+```
+
+What I'd wanted was to find the centre of each landmass.
+
+## Unnesting multipoligons into many separate polygons
+
+we can expand the "multipolygon" into a number of individual polygons (=landmasses) by casting to polygon as shown below:
+
+```{r label: expand the frence multipolygon into individual polygons, message = FALSE, warning = FALSE}
+world %>%
+  sf::st_transform(crs = sf::st_crs(4326)) %>%
+  filter(name == "France") %>%
+  st_cast("POLYGON") %>%
+  rownames_to_column("row_names") %>%
+  select(name, row_names, geometry)
+
+
+```
+
+From here on in I want to work with separate landmasses. So I will create a useful dataframe. While I'm at it, I will re-cast the geometry into lat-long (CRS = 4326) so that plotting it in leaflet flows more smoothly. I'm also going to calculate the area of each landmass and keep track of the fact that some polygon have the same name but they'tre acrually different sub-records that have been un-nested from one bigger one:
+
+```{r label: create a useful dataframe for the whole world, warning=FALSE, message=FALSE}
+# get the entire world as a number of individual polygons
+world_landmasses <- world %>%
+  #  filter(name == "St-Martin") %>%
+  sf::st_transform(crs = sf::st_crs(4326)) %>%
+  #                  filter(name == "France" | name == "Ireland" ) %>%
+  st_cast("POLYGON") %>%
+  mutate(area = as.numeric(st_area(sf::st_make_valid(geometry)))) %>%
+  #                  mutate(area = st_area(sf::st_make_valid(geometry))) %>%
+  group_by(name) %>%
+  arrange(desc(area)) %>%
+  mutate(poly_id = row_number()) %>%
+  mutate(one_of = n()) %>%
+  ungroup() %>%
+  mutate(name = str_c(name, "-", poly_id, "/", one_of))
+```
+
+```{r label: use leaflet to find the centre of everything, message = FALSE, warning = FALSE}
+
+world_map <- leaflet() %>%
+    addTiles(group = "Esri.WorldGrayCanvas") %>%
+#    addProviderTiles(providers$Esri.WorldImagery, group = "Esri.WorldImagery") %>%
+    addPolygons(data = world_landmasses
+                ) %>%
+  addMarkers(data =  world_landmasses %>%
+               mutate(geometry = sf::st_centroid(sf::st_make_valid(geometry))),
+        clusterOptions = markerClusterOptions(),
+        popup = ~makeHTML(paste0('Details:<br>',
+                        'name:', name, '<br>',
+                        buildGoogleMapsURLFromStGeom(geometry)))
+      )
+
+
+world_map
+
+```
+
+? or get the worldmap from https://data.nasa.gov/dataset/World-Map/7zbq-j77a
+
+```{r label: plot the first 10 landmasses (alphabetically), message = FALSE, warning = FALSE}
+world_landmasses %>%
+  head(10) %>%
+  ggplot() +
+    geom_sf() +
+  facet_wrap(~ str_c(name, "-", poly_id))
+```
+
+tmap can help to facet and allow free scales to small countries can be more clearly seen (thanks stackoverflow)
+
+```{r label: how about using tmap, message = FALSE, warning = FALSE}
+library(tmap)
+
+world_landmasses %>%
+  dplyr::filter(stringr::str_detect(name, "^E")) %>%
+  mutate(geometry = st_make_valid(geometry)) %>%
+  head(10) %>%
+  tm_shape() +
+  tm_borders() +
+  tm_facets(by = "name")
+```
+
+1.  Which country touches the most others?
+
+    How would we display (say) the ten countries that have the most borders with others? My first thought is to let {sf} to the hard work by joining the landmasses dataset onto itself (using st_touches) and see how many time a country is repeated in the resultant dataset.
+
+```{r label: which countries touch more others, message = FALSE, warning = FALSE}
+# note: this function takes a while
+
+top_n <- 5
+this_touches_that <- world_landmasses %>%
+  select(name, geometry) %>%
+  mutate(geometry = st_make_valid(geometry)) %>%
+  sf::st_join(world_landmasses %>%
+                select(touches = name, geometry) %>%
+                mutate(geometry = st_make_valid(geometry)),
+              join = st_touches) %>%
+  as_tibble() %>%
+  select(-geometry) %>%
+  na.omit() # defaily us left_join, so anything (like antarctica that touches nothing is in the list with an NA inless we omit NAs)
+
+top_n_touches <- this_touches_that %>%
+  count(name, sort = T) %>%
+  head(top_n)
+
+ leaflet() %>%
+    addTiles(group = "Esri.WorldGrayCanvas") %>%
+#    addProviderTiles(providers$Esri.WorldImagery, group = "Esri.WorldImagery") %>%
+    addPolygons(data = top_n_touches %>%
+                  left_join(world_landmasses %>% select(name, geometry)) %>%
+                  st_as_sf(),
+                label = ~paste0(name),
+                color = "green",
+                group = "this") %>%
+    addPolygons(data = top_n_touches %>%
+                    left_join(this_touches_that) %>%
+                  transmute(touchedby = name, name = touches) %>%
+                  left_join(world_landmasses %>% select(name, geometry)) %>%
+                  st_as_sf(),
+                label = ~paste0(name, "(touched by", touchedby, ")"),
+                color = "orange",
+                group = "touches that"
+                ) %>%
+    addLayersControl(
+      overlayGroups = c("this", "touches that"),
+      options = layersControlOptions(collapsed = FALSE))
+
+
+
+```
+
+1.  Which country is roundest?
+
+    This document describes a way of summarising \*\*boundary complexity\*\* as defined by the \[Polsby-Popper Test\](https://en.wikipedia.org/wiki/Polsby%E2%80%93Popper_test). The Polsby-Popper Test is a mathematical compactness measure of a shape developed to quantify the degree of gerrymandering of political districts. The test uses the length of the perimeter of a shape to the area of the shape and compares it against that of a circle.
+
+When using the Polsby-Popper Test, a circle will have a score of 1 and any other (more "complex") geometric shape has a smaller ratio (tending towards zero). Because we are interested in complexity. We will analyse:
+
+\* complexity = (1-Polsby-Popper)
+
+```{r label: which country is the roundest, message = FALSE, warning = FALSE}
+library(tmap)
+
+world_landmasses %>%
+#  dplyr::filter(stringr::str_detect(name, "^E")) %>%
+#  mutate(area = as.numeric(st_area(sf::st_make_valid(geometry)))) %>%
+  mutate(length = as.numeric(st_length(st_cast(geometry, to = "MULTILINESTRING")))) %>%
+  mutate(pp_score = if_else(length > 0, 1-((4 * 3.14159 * area) / (length * length)), 0)) %>%
+  group_by(name) %>%
+  mutate(poly_id = row_number()) %>%
+  mutate(one_of = n()) %>%
+  mutate(pp_score_summed = sum(pp_score)) %>%
+  ungroup() %>%
+  arrange(pp_score) %>%
+  mutate(geometry = st_make_valid(geometry)) %>%
+  filter(area > 1e10) %>% # throw out the really small islands that are *very* round
+  head(9) %>%
+  mutate(name = str_c(row_number(), ".", name, "-", poly_id, "/", one_of, "(", pp_score_summed, ")")) %>%
+  select(name, area, length, pp_score, poly_id, one_of, pp_score_summed, geometry) %>%
+  tm_shape() +
+  tm_borders() +
+  tm_fill(col = 'gray') +
+  tm_facets(by = "name")
+```
+
+so lets's create a dataframe with the roundness augmented
+
+```{r label: augment roundness, message = FALSE, warning = FALSE}
+wlm <- world_landmasses %>%
+#  dplyr::filter(stringr::str_detect(name, "^E")) %>%
+#  mutate(area = as.numeric(st_area(sf::st_make_valid(geometry)))) %>%
+  mutate(length = as.numeric(st_length(st_cast(geometry, to = "MULTILINESTRING")))) %>%
+  mutate(pp_score = if_else(length > 0, 1-((4 * 3.14159 * area) / (length * length)), 0)) %>%
+  group_by(name) %>%
+  mutate(poly_id = row_number()) %>%
+  mutate(one_of = n()) %>%
+  mutate(pp_score_summed = sum(pp_score)) %>%
+  ungroup() %>%
+  arrange(pp_score)
+
+```
+
+then plot the roundest in leaflet...
+
+```{r label: plot the roundest in leaflet, message = FALSE, warning = FALSE}
+
+world_map <- leaflet() %>%
+    addTiles(group = "Esri.WorldGrayCanvas") %>%
+#    addProviderTiles(providers$Esri.WorldImagery, group = "Esri.WorldImagery") %>%
+    addPolygons(data = wlm
+                ) %>%
+  addMarkers(data =  wlm %>%
+               filter(area > 1e10) %>%
+               arrange(pp_score) %>%
+               head(10) %>%
+               mutate(geometry = sf::st_centroid(sf::st_make_valid(geometry))),
+        clusterOptions = markerClusterOptions(),
+        popup = ~makeHTML(paste0('Details:<br>',
+                        'name:', name, ' (', poly_id, ')', '<br>',
+                        'pp = ', pp_score, '<br>',
+                        buildGoogleMapsURLFromStGeom(geometry)))
+      )
+
+
+world_map
+
+```
+
+or plot the least round in leaflet...
+
+```{r label: plot the least round in leaflet}
+
+
+world_map <- leaflet() %>%
+    addTiles(group = "Esri.WorldGrayCanvas") %>%
+#    addProviderTiles(providers$Esri.WorldImagery, group = "Esri.WorldImagery") %>%
+    addPolygons(data = wlm
+                ) %>%
+  addMarkers(data =  wlm %>%
+               filter(area > 1e10) %>%
+               arrange(desc(pp_score)) %>% # decreating roundess this time...
+               head(10) %>%
+               mutate(geometry = sf::st_centroid(sf::st_make_valid(geometry))),
+        clusterOptions = markerClusterOptions(),
+        popup = ~makeHTML(paste0('Details:<br>',
+                        'name:', name, ' (', poly_id, ')', '<br>',
+                        'pp = ', pp_score, '<br>',
+                        buildGoogleMapsURLFromStGeom(geometry)))
+      )
+
+
+world_map
+
+```
