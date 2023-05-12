@@ -107,7 +107,10 @@ event_timeline <- edm_ss_events %>%
     legend.position = "none",
   ) +
   labs(title = "Top 10 longest discharging EMDs since 2022-04-01",
-       subtitle = "Sites have been ranked in descending total discharge duration", caption = "data from Thames Water {api_root}/data/STE/v1/DischargeAlerts", tag = "", x = "EDM location", y = "date")
+       subtitle = "Sites have been ranked in descending total discharge duration",
+       caption = "Data from Thames Water {api_root}/data/STE/v1/DischargeAlerts",
+       tag = "", 
+       x = "EDM location", y = "date")
 
 
 plotly::ggplotly(event_timeline)
@@ -198,7 +201,7 @@ ea_daily_readings_rain %>%
   geom_col(aes(x = date, y = rain_ea_mm), fill = "lightblue", colour = "blue") +
   ylim(0, 10) +
   labs(title = "Average daily rainfall in the Thames corridor",
-       subtitle = glue::glue("Usingf data from {length(unique(ea_daily_readings_rain$measure))} measures"),
+       subtitle = glue::glue("Using data from {length(unique(ea_daily_readings_rain$measure))} measures"),
        caption = "EA data from: https://environment.data.gov.uk/flood-monitoring/archive",
        x = "Date", y = "Rainfall (mm)")
 #
