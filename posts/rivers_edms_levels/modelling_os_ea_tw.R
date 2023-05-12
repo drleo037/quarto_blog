@@ -253,7 +253,7 @@ xgb_spec <-
     mtry = tune(),
     learn_rate = 0.01
   ) %>%
-  set_engine("xgboost") %>%
+  set_engine("xgboost") %>% # can add validattio = 0.2 ,  see: https://www.youtube.com/watch?v=OMn1WCNufo8
   set_mode("regression")
 
 xgb_wf <- workflow(edm_rec, xgb_spec)
@@ -265,7 +265,7 @@ doParallel::registerDoParallel()
 
 set.seed(345)
 tictoc::tic()
-xgb_rs <- tune_race_anova(
+xgb_rs <- tune_race_anova( # or tune_grid
   xgb_wf,
   resamples = df_folds,
   grid = 15, #  27:30 in a production environment you'd use more
@@ -275,12 +275,25 @@ tictoc::toc()
 
 xgb_rs
 
+# check what's been investigated
+autoplot(xgb_rs)
+# we could retune grid on the more promoissing areas of hyerparameter space
+
 collect_metrics(xgb_rs)
 
+# have a look at how the tuning went
+# and how some eavenues were truncated early
 plot_race(xgb_rs)
 
+show_best(xgb_rs, metric = "rmse")
+
+# get the best model
 xgb_last <- xgb_wf %>%
+  # finalise the wf to stop being tunable
+  # and use the parameters from the best model
   finalize_workflow(select_best(xgb_rs, "rmse")) %>%
+  # last_fit includes all the training data
+  # rather than all the vfolds
   last_fit(df_split)
 
 xgb_last
@@ -296,6 +309,12 @@ library(vip)
 xgb_last %>%
   extract_fit_engine() %>%
   vip()
+# in this case, extract_fit_parsnip is the same...
+xgb_last %>%
+  extract_fit_parsnip() %>%
+  vip() # could add num_features and/or geom = "point")
+
+# this could be deployed using vetiver (34:00)
 
 if(F) {
   model_reg_xgboost %>%
