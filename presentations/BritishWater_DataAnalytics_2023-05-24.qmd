@@ -1,0 +1,268 @@
+---
+title: "Sewage spill Event Duration Monitoring"
+subtitle: "Through the eyes of a citizen scientist"
+author: "Leo Kiernan"
+date: "2023-05-24"
+draft: true
+date-format: iso
+format:
+  revealjs: 
+    slide-number: true
+    chalkboard: 
+      buttons: false
+    preview-links: auto
+    css: styles.css
+    footer: <https://leo037.quarto.pub/leos-blog/>
+resources:
+  - demo.pdf
+---
+
+## Bringing opendata to life ...
+
+-   I started by [blogging](https://leo037.quarto.pub/leos-blog/posts/opendata%20thamesEDM/opendata%20thamesEDM.html) about a new opendata source from Thames Water on Event Duration Monitors (EDMs)
+
+-   ... but ended up [building something](https://drleo037.shinyapps.io/openRivers/) that allowed the dataset to be explored in the context of other open data
+
+[![](images/interactiveApp.png){fig-align="center"}](https://drleo037.shinyapps.io/openRivers/)
+
+## Contents {chalkboard-buttons="true"}
+
+-   The datasets and sources I tapped into
+-   How the disparate sources we joined
+-   Handling opendata: The good, the bad and the ugly
+-   The future?
+
+## Joinging data to generate insight {chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
+
+::: r-vstack
+::: {data-id="box1" auto-animate-delay="0" style="background: #6600ff; font-size: 30px; width: 600px; height: 130px; margin: 10px; text-align: center;"}
+Open Streetmap<br> => Background maps <=<br>(where)
+:::
+::: {data-id="box2" auto-animate-delay="0.1" style="background: #2780e3; font-size: 30px; width: 600px; height: 130px; margin: 10px; text-align: center;"}
+Ordnance Survey<br> => River Networks <=<br>(what, where, connectivity, direction)
+:::
+::: {data-id="box3" auto-animate-delay="0.2" style="background: #3fb618; font-size: 30px; width: 600px; height: 130px; margin: 10px; text-align: center;"}
+Environment Agency<br> => Rivers flows <= <br>(levels, rainfall, where when, what)
+:::
+::: {data-id="box4" auto-animate-delay="0.3" style="background: #e83e8c; font-size: 30px; width: 600px; height: 130px; margin: 10px; text-align: center;"}
+Thames Water<br> => EDMs <= <br>(where, when, what)
+:::
+:::
+
+## Joinging data to generate insight {chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
+
+::: r-stack
+::: {data-id="box1" style="background: #6600ff; width: 450px; height: 450px; border-radius: 200px; text-align: center;"}
+OSM
+:::
+::: {data-id="box2" style="background: #2780e3; width: 350px; height: 350px; border-radius: 200px; text-align: center;"}
+OS
+:::
+::: {data-id="box3" style="background: #3fb618; width: 250px; height: 250px; border-radius: 200px; text-align: center;"}
+EA
+:::
+::: {data-id="box4" style="background: #e83e8c; width: 150px; height: 150px; border-radius: 200px; text-align: center;"}
+TW
+:::
+:::
+
+Each datasource builds on the previous to exta context
+
+## Joinging data to generate insight {chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
+::: columns
+
+::: {.column width="30%"}
+
+::: r-vstack
+::: {data-id="box1" auto-animate-delay="0" style="background: #6600ff; font-size: 30px; width:  400px; height: 130px; margin: 10px; text-align: center;"}
+<b>Open Streetmap<br> => Background maps <=<br>Geospatial background map</b>
+:::
+::: {data-id="box2" auto-animate-delay="0.1" style="background: #2780e3; font-size: 30px; width:  400px; height: 130px; margin: 10px; text-align: center;"}
+Ordnance Survey<br> => River Networks <=<br>Geospatial & Topological
+:::
+::: {data-id="box3" auto-animate-delay="0.2" style="background: #3fb618; font-size: 30px; width:  400px; height: 130px; margin: 10px; text-align: center;"}
+Environment Agency<br> => Rivers flows <= <br>Geospatial, Temporal
+:::
+::: {data-id="box4" auto-animate-delay="0.3" style="background: #e83e8c; font-size: 30px; width:  400px; height: 130px; margin: 10px; text-align: center;"}
+Thames Water<br> => EDMs <= <br>Geospatial, Temporal
+:::
+:::
+
+:::
+
+::: {.column width="10%"}
+:::
+
+::: {.column width="60%"}
+[![](images/interactiveApp.png){fig-align="center"}](https://drleo037.shinyapps.io/openRivers/)
+:::
+
+:::
+
+## Joinging data to generate insight {chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
+::: columns
+
+::: {.column width="30%"}
+
+::: r-vstack
+::: {data-id="box1" auto-animate-delay="0" style="background: #6600ff; font-size: 30px; width:  400px; height: 130px; margin: 10px; text-align: center;"}
+Open Streetmap<br> => Background maps <=<br>Geospatial background map
+:::
+::: {data-id="box2" auto-animate-delay="0.1" style="background: #2780e3; font-size: 30px; width:  400px; height: 130px; margin: 10px; text-align: center;"}
+<b>Ordnance Survey<br> => River Networks <=<br>Geospatial & Topological</b>
+:::
+::: {data-id="box3" auto-animate-delay="0.2" style="background: #3fb618; font-size: 30px; width:  400px; height: 130px; margin: 10px; text-align: center;"}
+Environment Agency<br> => Rivers flows <= <br>Geospatial, Temporal
+:::
+::: {data-id="box4" auto-animate-delay="0.3" style="background: #e83e8c; font-size: 30px; width:  400px; height: 130px; margin: 10px; text-align: center;"}
+Thames Water<br> => EDMs <= <br>Geospatial, Temporal
+:::
+:::
+
+:::
+
+::: {.column width="30%"}
+[![](images/OS uk rivers_200.png){fig-align="right"}](https://drleo037.shinyapps.io/openRivers/)
+:::
+
+::: {.column width="40%"}
+[![](images/directional_rivers_london.png){fig-align="right"}](https://drleo037.shinyapps.io/openRivers/)
+:::
+
+:::
+
+## Joinging data to generate insight {chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
+::: columns
+
+::: {.column width="30%"}
+
+::: r-vstack
+::: {data-id="box1" auto-animate-delay="0" style="background: #6600ff; font-size: 30px; width:  400px; height: 130px; margin: 10px; text-align: center;"}
+Open Streetmap<br> => Background maps <=<br>Geospatial background map
+:::
+::: {data-id="box2" auto-animate-delay="0.1" style="background: #2780e3; font-size: 30px; width:  400px; height: 130px; margin: 10px; text-align: center;"}
+Ordnance Survey<br> => River Networks <=<br>Geospatial & Topological
+:::
+::: {data-id="box3" auto-animate-delay="0.2" style="background: #3fb618; font-size: 30px; width:  400px; height: 130px; margin: 10px; text-align: center;"}
+<b>Environment Agency<br> => Rivers flows <= <br>Geospatial, Temporal</b>
+:::
+::: {data-id="box4" auto-animate-delay="0.3" style="background: #e83e8c; font-size: 30px; width:  400px; height: 130px; margin: 10px; text-align: center;"}
+Thames Water<br> => EDMs <= <br>Geospatial, Temporal
+:::
+:::
+
+:::
+
+::: {.column width="10%"}
+:::
+
+::: {.column width="60%"}
+[![](images/river_levels400.png){fig-align="right"}](https://drleo037.shinyapps.io/openRivers/)
+[![](images/river-loadings1200.png){fig-align="right"}](https://drleo037.shinyapps.io/openRivers/)
+:::
+
+:::
+
+## Joinging data to generate insight {chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
+::: columns
+
+::: {.column width="30%"}
+
+::: r-vstack
+::: {data-id="box1" auto-animate-delay="0" style="background: #6600ff; font-size: 30px; width:  400px; height: 130px; margin: 10px; text-align: center;"}
+Open Streetmap<br> => Background maps <=<br>Geospatial background map
+:::
+::: {data-id="box2" auto-animate-delay="0.1" style="background: #2780e3; font-size: 30px; width:  400px; height: 130px; margin: 10px; text-align: center;"}
+Ordnance Survey<br> => River Networks <=<br>Geospatial & Topological
+:::
+::: {data-id="box3" auto-animate-delay="0.2" style="background: #3fb618; font-size: 30px; width:  400px; height: 130px; margin: 10px; text-align: center;"}
+Environment Agency<br> => Rivers flows <= <br>Geospatial, Temporal
+:::
+::: {data-id="box4" auto-animate-delay="0.3" style="background: #e83e8c; font-size: 30px; width:  400px; height: 130px; margin: 10px; text-align: center;"}
+<b>Thames Water<br> => EDMs <= <br>Geospatial, Temporal</b>
+:::
+:::
+
+:::
+
+::: {.column width="10%"}
+:::
+
+::: {.column width="60%"}
+[![](images/EDMs300.png){fig-align="right"}](https://drleo037.shinyapps.io/openRivers/)
+[![](images/TW river loadings.png){fig-align="center"}](https://drleo037.shinyapps.io/openRivers/)
+:::
+
+:::
+
+
+## Handling opendata (the good) {chalkboard-buttons="true" }
+
+-   **Good:**
+
+    -   APIs promote reproducibility
+
+    -   Where possible decorate data with context / meaning (e.g. [EA API](https://environment.data.gov.uk/flood-monitoring/doc/reference#introduction) json-ld, [units](https://qudt.org/) etc.)
+
+    -   Leave a trail of breadcrumbs (e.g. EA API results for the [River Thames](https://environment.data.gov.uk/flood-monitoring/id/stations?riverName=River%20Thames))
+
+-   **Bad:**
+
+-   **Ugly:**
+
+## Handling opendata (the bad) {chalkboard-buttons="true" }
+
+-   **Good:**
+
+-   **Bad:**
+
+    -   Mostly, you're on your own. no SMEs
+
+    -   Some controls (like api-keys) constrain freedom
+
+    -   (to my knowledge) we're not yet a push / streaming / publish and subscribe endpoints for much of this data.
+
+-   **Ugly:**
+
+## Handling opendata (the good) {chalkboard-buttons="true" }
+
+-   **Good:**
+
+-   **Bad:**
+
+-   **Ugly:**
+
+    -   Dealing with a range of sources:
+
+        -   Lots of different styles of end-points (files, services, APIs)
+
+        -   Some formats are more complex than others (I struggled with nested JSON, but ...)
+
+    -   Dealing with lots of data (even from the same source
+
+        -   Some formats change over time (even within a single doc)
+
+        -   Some datasets have internal inconsistencies (tough to handle without SMEs)
+
+    -   I had to make some grand assumptions (never a good thing)
+
+        -   Sure, the usual stuff ... outliers (errors or interesting?)
+
+        -   Even in something as simple as counting events
+
+        -   Whether to join parts of river systems in the
+
+## The future? {chalkboard-buttons="true"}
+
+
+## About this presentation
+
+This presentation was built with [Quarto](https://quarto.org/)and [Reveal.js](https://revealjs.com), including:
+
+-   Presenting code and LaTeX equations
+-   Including computations in slide output
+-   Image, video, and iframe backgrounds
+-   Fancy transitions and animations
+-   Printing to PDF
+
+...and much more
