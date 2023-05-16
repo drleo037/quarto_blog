@@ -1,10 +1,13 @@
-library(tidymodels) # we will be filtting using tidymodels
+library(tidymodels) # we will be fitting using tidy models
+
+# we need data that gets loaded in ea_tw_ts
+source(here::here("posts/rivers_edms_levels/exploring_os_ea_tw.R"), local = TRUE)
 
 # double check what align does. ----
 # (I don't want to accidentally introduce information leakage
 # e.g. somewhere in an average or a rolling mean)
 # align right means it only uses data to the left (earlier in time)
-# note:I'm happy to leave rain_ea_mm in as rainfall is forecastable)
+# note:I'm happy to leave rain_ea_mm in as rainfall is forecast-able)
 ea_tw_ts %>%
   mutate(moving_avg = zoo::rollmean(rain_ea_mm, k = 3, fill = NA, align = "right")) %>%
   filter(date >= ymd("2023-01-01")) %>%
@@ -112,7 +115,7 @@ model_reg_lm_simplified %>%
   broom::tidy() %>% arrange(p.value)
 
 # even simpler LM with less degeneracy
-model_reg_lm_very_simplified <- lm(discharging_edm_count ~ stage_level_tm1_m + rain_ea_mm, data=df_train)
+model_reg_lm_very_simplified <- lm(discharging_edm_count ~ rain_ea_ma_mm + rain_ea_mm + rain_ea_tm1_mm + rain_ea_tm2_mm, data=df_train)
 # r list the full models parameters in descending significance }
 model_reg_lm_very_simplified %>%
   broom::tidy() %>% arrange(p.value)
@@ -216,6 +219,7 @@ doParallel::registerDoParallel()
 RACE_GRID_SIZE <- 50
 SEARCH_GRID_SIZE <- 50
 set.seed(345)
+message("race optimisation takes about 60 seconds....")
 if(T) {
   tictoc::tic()
   xgb_rs <- tune_race_anova(
@@ -240,9 +244,10 @@ if(T) {
   
   xgb_best_race
 }
-  
+
 # if you want to tune grid (and the optimise)
 if(T) {
+  message("grid search optimisation takes about 90 seconds....")
   tictoc::tic()
   xgb_rs <- tune_grid( # or race
     xgb_wf,
@@ -458,8 +463,8 @@ vip::vi(model_reg_lm) %>% mutate(Model = "Full lm", .before = 1) %>%
   geom_col() +
   coord_flip() +
   facet_wrap( ~ Model, scales = "free_x") +
-  labs(title = "This plot shows what each model relied on to estimate Petal Length",
-       subtitle = "The linear model models work quite differently to the tree-based ones")
+  labs(title = "This plot shows what each model relied on to estimate discharges",
+       subtitle = "The linear models work quite differently to the tree-based ones")
 
 ### Plots of actual and modelled estimates of discharging_edm_count
 # r compare modelled and actual for each regression model ----
