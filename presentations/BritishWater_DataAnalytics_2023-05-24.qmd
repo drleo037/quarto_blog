@@ -17,25 +17,28 @@ resources:
   - demo.pdf
 ---
 
-## Bringing opendata to life ...
+## Bringing open-data to life ...
 
--   I started by [blogging](https://leo037.quarto.pub/leos-blog/posts/opendata%20thamesEDM/opendata%20thamesEDM.html) about a new opendata source from Thames Water on Event Duration Monitors (EDMs)
+-   I started by [writing a blog](https://leo037.quarto.pub/leos-blog/) about a new open-data source from Thames Water on Event Duration Monitors (EDMs)
 
--   ... but ended up [building something](https://drleo037.shinyapps.io/openRivers/) that allowed the dataset to be explored in the context of other open data
+-   ... but ended up [building an app](https://drleo037.shinyapps.io/openRivers/ "link to the openRivers app") that allowed the dataset to be explored in the context of other open data
 
 [![](images/interactiveApp.png){fig-align="center"}](https://drleo037.shinyapps.io/openRivers/)
 
 ## Contents {chalkboard-buttons="true"}
 
--   The datasets and sources I tapped into
--   How the disparate sources we joined
--   Handling opendata: The good, the bad and the ugly
--   The future?
+-   A short hands-on demo of:
+    -   An [interactive app](https://drleo037.shinyapps.io/openRivers/ "link to the openRivers app") showing rivers, river flows & EMDs
+    -   Detailed [posts](https://leo037.quarto.pub/leos-blog/ "link to a blog on the components of the app") on how all this was implemented
+-   Deeper dive into the datasets used and they we joined
+-   Discussion:
+    -   Handling open-data: The good, the bad and the ugly
+    -   The future of open-data. Transparency, trust and innovation
 
-## Joinging data to generate insight {chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
+## open-data sources used in the app {chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
 
 ::: r-vstack
-::: {data-id="box1" auto-animate-delay="0" style="background: #6600ff; font-size: 30px; width: 600px; height: 130px; margin: 10px; text-align: center;"}
+::: {data-id="box1" auto-animate-delay="0" style="background: #cfcece; font-size: 30px; width: 600px; height: 130px; margin: 10px; text-align: center;"}
 Open Streetmap<br> =\> Background maps \<=<br>(where)
 :::
 
@@ -52,10 +55,10 @@ Thames Water<br> =\> EDMs \<= <br>(where, when, what)
 :::
 :::
 
-## Joinging data to generate insight {chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
+## Building a coherent data environment {chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
 
 ::: r-stack
-::: {data-id="box1" style="background: #6600ff; width: 450px; height: 450px; border-radius: 200px; text-align: center;"}
+::: {data-id="box1" style="background: #cfcece; width: 450px; height: 450px; border-radius: 200px; text-align: center;"}
 OSM
 :::
 
@@ -72,14 +75,16 @@ TW
 :::
 :::
 
-Each datasource builds on the previous to exta context
+Each data-source builds on the previous to add context
 
-## Joinging data to generate insight {chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
+~*\*\ The\ app\ also\ used\ water\ company\ boundaries\ and\ EDM\ Annual\ Return\ summaries*~
+
+## The main datasets (OSM) {chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
 
 ::: columns
 ::: {.column width="30%"}
 ::: r-vstack
-::: {data-id="box1" auto-animate-delay="0" style="background: #6600ff; font-size: 30px; width:  400px; height: 130px; margin: 10px; text-align: center;"}
+::: {data-id="box1" auto-animate-delay="0" style="background: #cfcece; font-size: 30px; width:  400px; height: 130px; margin: 10px; text-align: center;"}
 <b>Open Streetmap<br> =\> Background maps \<=<br>Geospatial background map</b>
 :::
 
@@ -105,12 +110,12 @@ Thames Water<br> =\> EDMs \<= <br>Geospatial, Temporal
 :::
 :::
 
-## Joinging data to generate insight {chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
+## The main datasets (OS) {chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
 
 ::: columns
 ::: {.column width="30%"}
 ::: r-vstack
-::: {data-id="box1" auto-animate-delay="0" style="background: #6600ff; font-size: 30px; width:  400px; height: 130px; margin: 10px; text-align: center;"}
+::: {data-id="box1" auto-animate-delay="0" style="background: #cfcece; font-size: 30px; width:  400px; height: 130px; margin: 10px; text-align: center;"}
 Open Streetmap<br> =\> Background maps \<=<br>Geospatial background map
 :::
 
@@ -137,12 +142,12 @@ Thames Water<br> =\> EDMs \<= <br>Geospatial, Temporal
 :::
 :::
 
-## Joinging data to generate insight {chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
+## The main datasets (EA) {chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
 
 ::: columns
 ::: {.column width="30%"}
 ::: r-vstack
-::: {data-id="box1" auto-animate-delay="0" style="background: #6600ff; font-size: 30px; width:  400px; height: 130px; margin: 10px; text-align: center;"}
+::: {data-id="box1" auto-animate-delay="0" style="background: #cfcece; font-size: 30px; width:  400px; height: 130px; margin: 10px; text-align: center;"}
 Open Streetmap<br> =\> Background maps \<=<br>Geospatial background map
 :::
 
@@ -168,12 +173,12 @@ Thames Water<br> =\> EDMs \<= <br>Geospatial, Temporal
 :::
 :::
 
-## Joinging data to generate insight {chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
+## The main datasets (TW) {chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
 
 ::: columns
 ::: {.column width="30%"}
 ::: r-vstack
-::: {data-id="box1" auto-animate-delay="0" style="background: #6600ff; font-size: 30px; width:  400px; height: 130px; margin: 10px; text-align: center;"}
+::: {data-id="box1" auto-animate-delay="0" style="background: #cfcece; font-size: 30px; width:  400px; height: 130px; margin: 10px; text-align: center;"}
 Open Streetmap<br> =\> Background maps \<=<br>Geospatial background map
 :::
 
@@ -199,7 +204,7 @@ Environment Agency<br> =\> Rivers flows \<= <br>Geospatial, Temporal
 :::
 :::
 
-## Handling opendata (the good) {chalkboard-buttons="true"}
+## Handling open-data (the good) {chalkboard-buttons="true"}
 
 -   **Good:**
 
@@ -209,13 +214,13 @@ Environment Agency<br> =\> Rivers flows \<= <br>Geospatial, Temporal
 
     -   Some APIs leave a trail of breadcrumbs (e.g. EA API results for the [River Thames](https://environment.data.gov.uk/flood-monitoring/id/stations?riverName=River%20Thames))
 
--   **Bad:**
+-   Bad:
 
--   **Ugly:**
+-   Ugly:
 
-## Handling opendata (the bad) {chalkboard-buttons="true"}
+## Handling open-data (the bad) {chalkboard-buttons="true"}
 
--   **Good:**
+-   Good:
 
 -   **Bad:**
 
@@ -225,13 +230,13 @@ Environment Agency<br> =\> Rivers flows \<= <br>Geospatial, Temporal
 
     -   (to my knowledge) endpoints are not yet push / streaming / publish-and-subscribe.
 
--   **Ugly:**
+-   Ugly:
 
-## Handling opendata (the good) {chalkboard-buttons="true"}
+## Handling open-data (the good) {chalkboard-buttons="true"}
 
--   **Good:**
+-   Good:
 
--   **Bad:**
+-   Bad:
 
 -   **Ugly:**
 
@@ -255,7 +260,15 @@ Environment Agency<br> =\> Rivers flows \<= <br>Geospatial, Temporal
 
         -   Whether to join parts of river systems together
 
-## The future?
+## The future of open data?
+
+Open-data is just one slice of a much wider data spectrum. The Open Data Institute ([ODI](https://theodi.org/about-the-odi/the-data-spectrum/)) have created excellent graphics summarising the [data spectrum](https://drive.google.com/drive/u/0/folders/1BzM_aV9B6d1AwQ1wf02vYW4XVDlGlFbO) that can be shared under [Creative Commons](https://creativecommons.org/licenses/) licences
+
+Points for discussion:
+
+-   The values of open-data include : Transparency, Trust, Innovation
+
+-   But there are costs including: Financial, Reputational, Processing, Support and documenation
 
 ## Other resources {chalkboard-buttons="true"}
 
@@ -275,7 +288,7 @@ Environment Agency<br> =\> Rivers flows \<= <br>Geospatial, Temporal
 
 ## About this presentation
 
-This presentation was built with [Quarto](https://quarto.org/)and [Reveal.js](https://revealjs.com), including:
+This presentation was built with Quarto and [Reveal.js](https://revealjs.com), including:
 
 -   Presenting code and LaTeX equations
 -   Including computations in slide output
