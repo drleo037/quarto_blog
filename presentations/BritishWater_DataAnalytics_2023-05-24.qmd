@@ -1,5 +1,7 @@
 ---
 title: "Sewage spill Event Duration Monitoring"
+title-slide-attributes: 
+  data-background-color: cornsilk
 subtitle: "Through the eyes of a citizen scientist"
 author: "Leo Kiernan"
 date: "2023-05-24"
@@ -13,11 +15,21 @@ format:
     preview-links: auto
     css: styles.css
     footer: <https://leo037.quarto.pub/leos-blog/>
-resources:
-  - demo.pdf
 ---
 
-## Bringing open-data to life ...
+## Public interest in pollution is growing {background-color="cornsilk"}
+
+-   [Short term](https://trends.google.com/trends/explore?date=today%205-y&geo=GB&q=sewage%20discharge,river%20pollution&hl=en): factors include [weather](https://www.google.co.uk/search?q=sewage+discharge&cr=countryUK%7CcountryGB&biw=2505&bih=1289&tbs=cdr%3A1%2Ccd_min%3A8%2F8%2F2022%2Ccd_max%3A8%2F20%2F2022%2Cctr%3AcountryUK%7CcountryGB&sxsrf=APwXEdcQS2nirByN3Mu_IgrzT85aCwMK0g%3A1684398659199&ei=Q-JlZIzRC9KH8gLo7ZuYBg&ved=0ahUKEwjM_vb9uf7-AhXSg1wKHej2BmMQ4dUDCA8&uact=5&oq=sewage+discharge&gs_lcp=Cgxnd3Mtd2l6LXNlcnAQAzILCAAQigUQkQIQiwMyCAgAEIoFEJECMgUIABCABDIFCAAQgAQyBQgAEIAEMgUIABCABDIFCAAQgAQyBQgAEIAEMgUIABCABDIFCAAQgAQ6CwgAEIoFELADEJECOgkIABAHEB4QsAM6CAgAEIAEELADOgoIABANEIAEELEDOg0IABANEIAEELEDEIMBOgcIABANEIAEOgsIABCKBRCxAxCDAToGCAAQBxAeSgQIQRgBUOj8A1i_igRg64sEaANwAHgAgAFriAGxBJIBAzYuMZgBAKABAcgBCrgBAcABAQ&sclient=gws-wiz-serp) and [awareness](https://www.google.co.uk/search?q=river+pollution&tbs=cdr:1,cd_min:3/3/2023,cd_max:3/11/2023,ctr:countryUK%7CcountryGB&sxsrf=APwXEdexc1O6diIXEMJtMPCxEeD_TvuCcA:1684398146590&source=lnt&cr=countryUK%7CcountryGB&sa=X&ved=2ahUKEwjB77-JuP7-AhXViFwKHT8QDpUQpwV6BAgbEBY&biw=2505&bih=1289&dpr=1), etc.
+
+-   [longer term](https://trends.google.com/trends/explore?date=all&geo=GB&q=sewage%20discharge,river%20pollution&hl=en): ([policy](https://www.google.co.uk/search?q=river+pollution&tbs=cdr:1,cd_min:1/1/2004,cd_max:2/29/2004,ctr:countryUK%7CcountryGB&sxsrf=APwXEdfzGGcvz3ofpvGMjiPVwIhah9OMKA:1684398627206&source=lnt&cr=countryUK%7CcountryGB&sa=X&ved=2ahUKEwiisdbuuf7-AhXUgVwKHX0zCskQpwV6BAgfEBY&biw=2505&bih=1289&dpr=1), [environment and climate](https://trends.google.com/trends/explore?date=all&geo=GB&q=climate,environment&hl=en) etc.) [control](https://trends.google.com/trends/explore?date=all&geo=GB&q=trump,chatGPT,shopping&hl=en)
+
+People want to know what's going on, why its happening and what can be done to improve things. Technology has increased data-literacy and transformed how information is consumed.
+
+-   Gone are the days when a few interested parties would find what they needed by trawling through an annex of an annual return downloadable in pdf format
+
+-   incoming is up-to-date, searchable interactive content made available through intuitive interfaces to everyone almost anywhere
+
+## Bringing open-data to life ... {background-color="cornsilk"}
 
 -   I started by [writing a blog](https://leo037.quarto.pub/leos-blog/) about a new open-data source from Thames Water on Event Duration Monitors (EDMs)
 
@@ -25,17 +37,27 @@ resources:
 
 [![](images/interactiveApp.png){fig-align="center"}](https://drleo037.shinyapps.io/openRivers/)
 
-## Contents {chalkboard-buttons="true"}
+## Contents {background-color="cornsilk" chalkboard-buttons="true"}
 
 -   A short hands-on demo of:
     -   An [interactive app](https://drleo037.shinyapps.io/openRivers/ "link to the openRivers app") showing rivers, river flows & EMDs
     -   Detailed [posts](https://leo037.quarto.pub/leos-blog/ "link to a blog on the components of the app") on how all this was implemented
--   Deeper dive into the datasets used and they we joined
+-   Deeper dive into the datasets used and how they were joined
 -   Discussion:
     -   Handling open-data: The good, the bad and the ugly
-    -   The future of open-data. Transparency, trust and innovation
+    -   Closing observations
 
-## open-data sources used in the app {chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
+## Contents {background-color="cornsilk" chalkboard-buttons="true"}
+
+-   ~~A short hands-on demo of:~~
+    -   ~~An [interactive app](https://drleo037.shinyapps.io/openRivers/ "link to the openRivers app") showing rivers, river flows & EMDs~~
+    -   ~~Detailed [posts](https://leo037.quarto.pub/leos-blog/ "link to a blog on the components of the app") on how all this was implemented~~
+-   Deeper dive into the datasets used and how they were joined
+-   Discussion:
+    -   Handling open-data: The good, the bad and the ugly
+    -   Closing observations
+
+## open-data sources used in the app {background-color="cornsilk" chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
 
 ::: r-vstack
 ::: {data-id="box1" auto-animate-delay="0" style="background: #cfcece; font-size: 30px; width: 600px; height: 130px; margin: 10px; text-align: center;"}
@@ -55,7 +77,7 @@ Thames Water<br> =\> EDMs \<= <br>(where, when, what)
 :::
 :::
 
-## Building a coherent data environment {chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
+## Building a coherent data environment {background-color="cornsilk" chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
 
 ::: r-stack
 ::: {data-id="box1" style="background: #cfcece; width: 450px; height: 450px; border-radius: 200px; text-align: center;"}
@@ -77,9 +99,9 @@ TW
 
 Each data-source builds on the previous to add context
 
-~*\*\ The\ app\ also\ used\ water\ company\ boundaries\ and\ EDM\ Annual\ Return\ summaries*~
+~*\* The app also used water company boundaries and EDM Annual Return summaries*~
 
-## The main datasets (OSM) {chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
+## The main datasets (OSM) {background-color="cornsilk" chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
 
 ::: columns
 ::: {.column width="30%"}
@@ -106,11 +128,11 @@ Thames Water<br> =\> EDMs \<= <br>Geospatial, Temporal
 :::
 
 ::: {.column width="60%"}
-[![](images/interactiveApp.png){fig-align="center"}](https://drleo037.shinyapps.io/openRivers/)
+[![](images/interactiveApp.png){fig-align="center"}](https://www.openstreetmap.org/#map=7/53.081/-4.290)
 :::
 :::
 
-## The main datasets (OS) {chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
+## The main datasets (OS) {background-color="cornsilk" chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
 
 ::: columns
 ::: {.column width="30%"}
@@ -134,15 +156,15 @@ Thames Water<br> =\> EDMs \<= <br>Geospatial, Temporal
 :::
 
 ::: {.column width="30%"}
-[![](images/OS%20uk%20rivers_200.png){fig-align="right"}](https://drleo037.shinyapps.io/openRivers/)
+[![](images/OS%20uk%20rivers_200.png){fig-align="right"}](https://leo037.quarto.pub/leos-blog/posts/opendata_UK_rivers/opendata_UK_rivers.html)
 :::
 
 ::: {.column width="40%"}
-[![](images/directional_rivers_london.png){fig-align="right"}](https://drleo037.shinyapps.io/openRivers/)
+[![](images/directional_rivers_london.png){fig-align="right"}](https://leo037.quarto.pub/leos-blog/posts/opendata_UK_rivers/opendata_UK_rivers.html)
 :::
 :::
 
-## The main datasets (EA) {chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
+## The main datasets (EA) {background-color="cornsilk" chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
 
 ::: columns
 ::: {.column width="30%"}
@@ -169,11 +191,11 @@ Thames Water<br> =\> EDMs \<= <br>Geospatial, Temporal
 :::
 
 ::: {.column width="60%"}
-[![](images/river_levels400.png){fig-align="right"}](https://drleo037.shinyapps.io/openRivers/) [![](images/river-loadings1200.png){fig-align="right"}](https://drleo037.shinyapps.io/openRivers/)
+[![](images/river_levels400.png){fig-align="right"}](https://leo037.quarto.pub/leos-blog/posts/opendata_EA/opendata_EA.html) [![](images/river-loadings1200.png){fig-align="right"}](https://leo037.quarto.pub/leos-blog/posts/opendata_EA/opendata_EA.html)
 :::
 :::
 
-## The main datasets (TW) {chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
+## The main datasets (TW) {background-color="cornsilk" chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
 
 ::: columns
 ::: {.column width="30%"}
@@ -200,67 +222,55 @@ Environment Agency<br> =\> Rivers flows \<= <br>Geospatial, Temporal
 :::
 
 ::: {.column width="60%"}
-[![](images/EDMs300.png){fig-align="right"}](https://drleo037.shinyapps.io/openRivers/) [![](images/TW%20river%20loadings.png){fig-align="center"}](https://drleo037.shinyapps.io/openRivers/)
+[![](images/EDMs300.png){fig-align="right"}](https://leo037.quarto.pub/leos-blog/posts/opendata%20thamesEDM/opendata%20thamesEDM.html) [![](images/TW%20river%20loadings.png){fig-align="center"}](https://leo037.quarto.pub/leos-blog/posts/opendata%20thamesEDM/opendata%20thamesEDM.html)
 :::
 :::
 
-## Handling open-data (the good) {chalkboard-buttons="true"}
+## Handling open-data (the good) {background-color="cornsilk" chalkboard-buttons="true"}
 
--   **Good:**
+-   Bulk downloads allow **flexibility**
 
-    -   APIs promote reproducibility
+-   Query-response allows **agility**
 
-    -   Where possible decorate data with context / meaning (e.g. [EA API](https://environment.data.gov.uk/flood-monitoring/doc/reference#introduction) json-ld, [units](https://qudt.org/) etc.)
+-   APIs promote **reproducibility**
 
-    -   Some APIs leave a trail of breadcrumbs (e.g. EA API results for the [River Thames](https://environment.data.gov.uk/flood-monitoring/id/stations?riverName=River%20Thames))
+    -   APIs sometimes decorate data with context / meaning (e.g. a [flow](https://environment.data.gov.uk/flood-monitoring/id/measures/3400TH-flow--Mean-15_min-m3_s) from [EA API](https://environment.data.gov.uk/flood-monitoring/doc/reference#introduction) json-ld, [units](https://qudt.org/) etc.)
 
--   Bad:
+    -   APIs can leave a trail of breadcrumbs (e.g. JSON results from the EA-API for the [River Thames](https://environment.data.gov.uk/flood-monitoring/id/stations?riverName=River%20Thames))
 
--   Ugly:
+    -   APIs can help trim what you get back (e.g. [TW-API](https://data.thameswater.co.uk/s/communityapi/a028d00000AaavcAAB/thames-water-open-dataopendataapienvironmentdata) & [EA-API](https://environment.data.gov.uk/flood-monitoring/doc/reference#api-summary))
 
-## Handling open-data (the bad) {chalkboard-buttons="true"}
+## Handling open-data (the bad) {background-color="cornsilk" chalkboard-buttons="true"}
 
--   Good:
+-   Mostly, you're on your own.
 
--   **Bad:**
+    -   There are no SMEs. Documentation, snippets examples are paramount
 
-    -   Mostly, you're on your own. no SMEs
+    -   Where are the communities of practice? Social media? github? [water-aware](https://www.waterawarecollective.earth/) ?
 
-    -   Some terms of service limit use and might discourage innovation ([example](https://data.thameswater.co.uk/s/terms-of-service))
+-   Some terms of service limit use and might discourage innovation ([example](https://data.thameswater.co.uk/s/terms-of-service))
 
-    -   (to my knowledge) endpoints are not yet push / streaming / publish-and-subscribe.
+## Handling open-data (the ugly) {background-color="cornsilk" chalkboard-buttons="true"}
 
--   Ugly:
+-   Different styles of end-points (files, services, APIs)
 
-## Handling open-data (the good) {chalkboard-buttons="true"}
+-   Some formats are more complex than others (I struggled with nested JSON, but ...)
 
--   Good:
+-   Dealing with lots of data (even from the same source):
 
--   Bad:
+-   Some formats change over time (even within a single doc)
 
--   **Ugly:**
+-   Some datasets have internal inconsistencies (tough to handle without SMEs)
 
-    -   Dealing with a range of sources:
+-   I had to make some grand assumptions (never a good thing)
 
-        -   Different styles of end-points (files, services, APIs)
+    -   Sure, the usual stuff ... outliers (errors or interesting?)
 
-        -   Some formats are more complex than others (I struggled with nested JSON, but ...)
+    -   Even in something as simple as counting events
 
-    -   Dealing with lots of data (even from the same source):
+    -   Whether to join parts of river systems together
 
-        -   Some formats change over time (even within a single doc)
-
-        -   Some datasets have internal inconsistencies (tough to handle without SMEs)
-
-    -   I had to make some grand assumptions (never a good thing)
-
-        -   Sure, the usual stuff ... outliers (errors or interesting?)
-
-        -   Even in something as simple as counting events
-
-        -   Whether to join parts of river systems together
-
-## The future of open data?
+## Discussion {background-color="cornsilk" chalkboard-buttons="true"}
 
 Open-data is just one slice of a much wider data spectrum. The Open Data Institute ([ODI](https://theodi.org/about-the-odi/the-data-spectrum/)) have created excellent graphics summarising the [data spectrum](https://drive.google.com/drive/u/0/folders/1BzM_aV9B6d1AwQ1wf02vYW4XVDlGlFbO) that can be shared under [Creative Commons](https://creativecommons.org/licenses/) licences
 
@@ -268,9 +278,9 @@ Points for discussion:
 
 -   The values of open-data include : Transparency, Trust, Innovation
 
--   But there are costs including: Financial, Reputational, Processing, Support and documenation
+-   But there are costs including: Financial, Reputational, Processing, Support and documentation
 
-## Other resources {chalkboard-buttons="true"}
+## Other resources {background-color="cornsilk" chalkboard-buttons="true"}
 
 -   [Environment Agency: (Annualised) Storm Overflows](https://environment.data.gov.uk/dataset/21e15f12-0df8-4bfc-b763-45226c16a8ac)
 
@@ -285,15 +295,3 @@ Points for discussion:
 -   [Surfers Against Sewage: (interactive map) Pollution alerts](https://www.sas.org.uk/water-quality/sewage-pollution-alerts/)
 
 -   [Top of the poops (maps, code & other visuals)](https://top-of-the-poops.org/)
-
-## About this presentation
-
-This presentation was built with Quarto and [Reveal.js](https://revealjs.com), including:
-
--   Presenting code and LaTeX equations
--   Including computations in slide output
--   Image, video, and iframe backgrounds
--   Fancy transitions and animations
--   Printing to PDF
-
-...and much more
