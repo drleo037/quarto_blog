@@ -17,17 +17,28 @@ format:
     footer: <https://leo037.quarto.pub/leos-blog/>
 ---
 
-## Public interest in pollution is growing {background-color="cornsilk"}
+## Contents {background-color="cornsilk" chalkboard-buttons="true"}
+
+-   **Introduction**
+    -   Public interest in the environment and storm discharges.
+-   **Opening up access to data**
+    -   Examples of what's possible.
+-   **Deeper dive**
+    -   The datasets used and how they were joined.
+-   **Discussion**
+    -   Handling open-data: The good, the bad and the ugly.
+
+## Public interest in [pollution](https://www.thameswater.co.uk/about-us/performance/river-health/storm-discharge-and-event-duration-monitoring) is growing {background-color="cornsilk"}
 
 -   [Short term](https://trends.google.com/trends/explore?date=today%205-y&geo=GB&q=sewage%20discharge,river%20pollution&hl=en): factors include [weather](https://www.google.co.uk/search?q=sewage+discharge&cr=countryUK%7CcountryGB&biw=2505&bih=1289&tbs=cdr%3A1%2Ccd_min%3A8%2F8%2F2022%2Ccd_max%3A8%2F20%2F2022%2Cctr%3AcountryUK%7CcountryGB&sxsrf=APwXEdcQS2nirByN3Mu_IgrzT85aCwMK0g%3A1684398659199&ei=Q-JlZIzRC9KH8gLo7ZuYBg&ved=0ahUKEwjM_vb9uf7-AhXSg1wKHej2BmMQ4dUDCA8&uact=5&oq=sewage+discharge&gs_lcp=Cgxnd3Mtd2l6LXNlcnAQAzILCAAQigUQkQIQiwMyCAgAEIoFEJECMgUIABCABDIFCAAQgAQyBQgAEIAEMgUIABCABDIFCAAQgAQyBQgAEIAEMgUIABCABDIFCAAQgAQ6CwgAEIoFELADEJECOgkIABAHEB4QsAM6CAgAEIAEELADOgoIABANEIAEELEDOg0IABANEIAEELEDEIMBOgcIABANEIAEOgsIABCKBRCxAxCDAToGCAAQBxAeSgQIQRgBUOj8A1i_igRg64sEaANwAHgAgAFriAGxBJIBAzYuMZgBAKABAcgBCrgBAcABAQ&sclient=gws-wiz-serp) and [awareness](https://www.google.co.uk/search?q=river+pollution&tbs=cdr:1,cd_min:3/3/2023,cd_max:3/11/2023,ctr:countryUK%7CcountryGB&sxsrf=APwXEdexc1O6diIXEMJtMPCxEeD_TvuCcA:1684398146590&source=lnt&cr=countryUK%7CcountryGB&sa=X&ved=2ahUKEwjB77-JuP7-AhXViFwKHT8QDpUQpwV6BAgbEBY&biw=2505&bih=1289&dpr=1), etc.
 
--   [longer term](https://trends.google.com/trends/explore?date=all&geo=GB&q=sewage%20discharge,river%20pollution&hl=en): ([policy](https://www.google.co.uk/search?q=river+pollution&tbs=cdr:1,cd_min:1/1/2004,cd_max:2/29/2004,ctr:countryUK%7CcountryGB&sxsrf=APwXEdfzGGcvz3ofpvGMjiPVwIhah9OMKA:1684398627206&source=lnt&cr=countryUK%7CcountryGB&sa=X&ved=2ahUKEwiisdbuuf7-AhXUgVwKHX0zCskQpwV6BAgfEBY&biw=2505&bih=1289&dpr=1), [environment and climate](https://trends.google.com/trends/explore?date=all&geo=GB&q=climate,environment&hl=en) etc.) [control](https://trends.google.com/trends/explore?date=all&geo=GB&q=trump,chatGPT,shopping&hl=en)
+-   [Longer term](https://trends.google.com/trends/explore?date=all&geo=GB&q=sewage%20discharge,river%20pollution&hl=en): [policy](https://www.google.co.uk/search?q=river+pollution+UK&cr=countryUK%7CcountryGB&biw=1225&bih=569&tbs=cdr%3A1%2Ccd_min%3A1%2F1%2F2004%2Ccd_max%3A2%2F1%2F2004%2Cctr%3AcountryUK%7CcountryGB&sxsrf=APwXEdeW-M_mgJG8l83RsF5ShNHcb73-Fg%3A1684831239385&ei=B3xsZPKFF9LkgAbc25LADw&ved=0ahUKEwiypZ68hYv_AhVSMsAKHdytBPgQ4dUDCA8&uact=5&oq=river+pollution+UK&gs_lcp=Cgxnd3Mtd2l6LXNlcnAQAzIICAAQigUQkQIyBQgAEIAEMggIABCKBRCRAjIFCAAQgAQyBggAEBYQHjIGCAAQFhAeMgYIABAWEB4yBggAEBYQHjIGCAAQFhAeMgYIABAWEB46CggAEIoFELADEEM6BwgAEIoFEEM6CAgAEBYQHhAKSgQIQRgBULQIWJcNYJIYaAFwAHgAgAGiAYgBwAKSAQMyLjGYAQCgAQHIAQrAAQE&sclient=gws-wiz-serp) and [environment / climate](https://trends.google.com/trends/explore?date=all&geo=GB&q=climate,environment&hl=en) etc. ([control](https://trends.google.com/trends/explore?date=all&geo=GB&q=trump,chatGPT,shopping&hl=en))
 
 People want to know what's going on, why its happening and what can be done to improve things. Technology has increased data-literacy and transformed how information is consumed.
 
--   Gone are the days when a few interested parties would find what they needed by trawling through an annex of an annual return downloadable in pdf format
+-   Gone are the days when a few interested parties would find what they needed in an annex of an annual return.
 
--   incoming is up-to-date, searchable interactive content made available through intuitive interfaces to everyone almost anywhere
+-   Incoming: live searchable interactive content available to everyone via intuitive interfaces almost anywhere any time.
 
 ## Bringing open-data to life ... {background-color="cornsilk"}
 
@@ -36,26 +47,6 @@ People want to know what's going on, why its happening and what can be done to i
 -   ... but ended up [building an app](https://drleo037.shinyapps.io/openRivers/ "link to the openRivers app") that allowed the dataset to be explored in the context of other open data
 
 [![](images/interactiveApp.png){fig-align="center"}](https://drleo037.shinyapps.io/openRivers/)
-
-## Contents {background-color="cornsilk" chalkboard-buttons="true"}
-
--   A short hands-on demo of:
-    -   An [interactive app](https://drleo037.shinyapps.io/openRivers/ "link to the openRivers app") showing rivers, river flows & EMDs
-    -   Detailed [posts](https://leo037.quarto.pub/leos-blog/ "link to a blog on the components of the app") on how all this was implemented
--   Deeper dive into the datasets used and how they were joined
--   Discussion:
-    -   Handling open-data: The good, the bad and the ugly
-    -   Closing observations
-
-## Contents {background-color="cornsilk" chalkboard-buttons="true"}
-
--   ~~A short hands-on demo of:~~
-    -   ~~An [interactive app](https://drleo037.shinyapps.io/openRivers/ "link to the openRivers app") showing rivers, river flows & EMDs~~
-    -   ~~Detailed [posts](https://leo037.quarto.pub/leos-blog/ "link to a blog on the components of the app") on how all this was implemented~~
--   Deeper dive into the datasets used and how they were joined
--   Discussion:
-    -   Handling open-data: The good, the bad and the ugly
-    -   Closing observations
 
 ## open-data sources used in the app {background-color="cornsilk" chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
 
@@ -101,7 +92,7 @@ Each data-source builds on the previous to add context
 
 ~*\* The app also used water company boundaries and EDM Annual Return summaries*~
 
-## The main datasets (OSM) {background-color="cornsilk" chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
+## The main datasets (OSM) background {background-color="cornsilk" chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
 
 ::: columns
 ::: {.column width="30%"}
@@ -132,7 +123,7 @@ Thames Water<br> =\> EDMs \<= <br>Geospatial, Temporal
 :::
 :::
 
-## The main datasets (OS) {background-color="cornsilk" chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
+## The main datasets (OS) rivers {background-color="cornsilk" chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
 
 ::: columns
 ::: {.column width="30%"}
@@ -164,7 +155,7 @@ Thames Water<br> =\> EDMs \<= <br>Geospatial, Temporal
 :::
 :::
 
-## The main datasets (EA) {background-color="cornsilk" chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
+## The main datasets (EA) levels and flows {background-color="cornsilk" chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
 
 ::: columns
 ::: {.column width="30%"}
@@ -195,7 +186,7 @@ Thames Water<br> =\> EDMs \<= <br>Geospatial, Temporal
 :::
 :::
 
-## The main datasets (TW) {background-color="cornsilk" chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
+## The main datasets (TW) discharges {background-color="cornsilk" chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
 
 ::: columns
 ::: {.column width="30%"}
