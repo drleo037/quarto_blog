@@ -372,5 +372,7 @@ ea_tw_ts %>%
   geom_point(aes(x = tma, y = discharging_edm_count), # stage_level_m),
              colour = "blue", alpha = 0.3)
 
-
-
+# make a noise that this step has been completed
+beepr::beep()
+# buy a bit of time because beepr can cause crashes
+Sys.sleep(5)

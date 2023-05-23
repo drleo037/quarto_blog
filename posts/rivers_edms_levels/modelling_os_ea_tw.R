@@ -1,7 +1,10 @@
 library(tidymodels) # we will be fitting using tidy models
 
 # we need data that gets loaded in ea_tw_ts
-source(here::here("posts/rivers_edms_levels/exploring_os_ea_tw.R"), local = TRUE)
+# I may have already run the logic (so check before wasting time doing it again)
+if(!exists("ea_tw_ts")) {
+  source(here::here("posts/rivers_edms_levels/exploring_os_ea_tw.R"), local = TRUE)
+}
 
 # double check what align does. ----
 # (I don't want to accidentally introduce information leakage
@@ -58,7 +61,7 @@ ea_tw_ts_features %>%
   ggplot() +
   geom_line(aes(x = date, y = reading, colour = measurand)) +
   facet_wrap( ~ measurand, ncol = 1, scales = "free") +
-  labs(title = "Fearures that will be considered while modelling",
+  labs(title = "Features that will be considered while modelling",
        subtitle = "many of these are highly correlated",
        caption = "data from EA historic archives and met-office",
        x = "date", y = "")
@@ -156,8 +159,7 @@ if(F) {
 
 ## Regression using XGBOOST
 
-# r fit an xgboost regression model }
-# xgboost regression (works,  but the SQL needs extra work to convert into excel) ----
+# r fit an xgboost regression model } ----
 
 model_reg_xgboost <- boost_tree(mode = "regression") %>%
   set_engine("xgboost") %>%
@@ -222,7 +224,7 @@ set.seed(345)
 message("race optimisation takes about 60 seconds....")
 if(T) {
   tictoc::tic()
-  xgb_rs <- tune_race_anova(
+  xgb_rs_race <- tune_race_anova(
     xgb_wf,
     resamples = df_folds,
     grid = RACE_GRID_SIZE, #  27:30 in a production environment you'd use more
@@ -231,13 +233,13 @@ if(T) {
   tictoc::toc() # maybe 20 seconds?
   # have a look at how the tuning went
   # and how some eavenues were truncated early
-  plot_race(xgb_rs)
+  plot_race(xgb_rs_race)
   
   # get the best model
   xgb_best_race <- xgb_wf %>%
     # finalise the wf to stop being tunable
     # and use the parameters from the best model
-    finalize_workflow(select_best(xgb_rs, "rmse")) %>%
+    finalize_workflow(select_best(xgb_rs_race, "rmse")) %>%
     # last_fit includes all the training data
     # rather than all the vfolds
     last_fit(df_split)
@@ -247,9 +249,9 @@ if(T) {
 
 # if you want to tune grid (and the optimise)
 if(T) {
-  message("grid search optimisation takes about 90 seconds....")
+  message("grid search optimisation (broad) takes about 90 seconds....")
   tictoc::tic()
-  xgb_rs <- tune_grid( # or race
+  xgb_rs_grid <- tune_grid( # or race
     xgb_wf,
     resamples = df_folds,
     grid = SEARCH_GRID_SIZE, #  27:30 in a production environment you'd use more
@@ -259,10 +261,10 @@ if(T) {
   # with grid = 15: 19.41 sec elapsed for simple tuner, 20.64 sec elapsed for full
   # with grid = 30: 42.93 sec elapsed
   
-  xgb_rs
+  xgb_rs_grid
   
   # check what hyperparameters been investigated ----
-  autoplot(xgb_rs)
+  autoplot(xgb_rs_grid)
   # or: https://juliasilge.com/blog/xgboost-tune-volleyball/
   my_autoplot <- function(rs, rmse = "rmse") {
     rs %>%
@@ -281,10 +283,11 @@ if(T) {
       labs(x = NULL, y = "RMSE")
   }
   
-  my_autoplot(xgb_rs)
+  my_autoplot(xgb_rs_grid)
   
   # we could retune grid on the more promising areas of hyper-parameter space
   # https://www.r-bloggers.com/2020/05/using-xgboost-with-tidymodels/
+  message("Refined grid optimisation (zoomed in) takes a further 50(ish) seconds....")
   
   xgb_grid <-
     grid_latin_hypercube(
@@ -299,7 +302,7 @@ if(T) {
     )
   
   tictoc::tic()
-  xgb_rs <- tune_grid( # or tune_grid
+  xgb_rs_grid_refined <- tune_grid( # or tune_grid
     xgb_wf,
     resamples = df_folds,
     grid = xgb_grid, #  27:30 in a production environment you'd use more
@@ -307,7 +310,7 @@ if(T) {
   )
   tictoc::toc()
   # with size = 50 , takes 76 seconds
-  autoplot(xgb_rs)
+  autoplot(xgb_rs_grid_refined)
   
   
   if(F) {
@@ -352,13 +355,13 @@ if(T) {
     my_autoplot(xgb_rs) # remmeber no log
   }
   
-  show_best(xgb_rs, metric = "rmse")
+  show_best(xgb_rs_grid_refined, metric = "rmse")
   
   # get the best model
   xgb_best_grid <- xgb_wf %>%
     # finalise the wf to stop being tunable
     # and use the parameters from the best model
-    finalize_workflow(select_best(xgb_rs, "rmse")) %>%
+    finalize_workflow(select_best(xgb_rs_grid_refined, "rmse")) %>%
     # last_fit includes all the training data
     # rather than all the vfolds
     last_fit(df_split)
