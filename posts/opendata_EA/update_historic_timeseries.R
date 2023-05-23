@@ -27,7 +27,7 @@ by_date <- 1
 #|   download the file from the URL into the local directory defined by csv_path
 #| }
 #| NOTE: this will fail unglamorously if a CSV isnt present e.g. 2023-04-04
-if(to_date < by_date) {
+if(from_date < to_date) {
   Map(function(i) {
     f = str_c("https://environment.data.gov.uk/flood-monitoring/archive/readings-", i, ".csv")
     download.file(f, destfile = str_c(csv_path, basename(f)))
