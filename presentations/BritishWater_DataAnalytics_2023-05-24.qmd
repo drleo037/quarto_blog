@@ -155,7 +155,7 @@ Thames Water<br> =\> EDMs \<= <br>Geospatial, Temporal
 :::
 :::
 
-## The main datasets (EA) levels and flows {background-color="cornsilk" chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
+## The main datasets (EA) levels & flows {background-color="cornsilk" chalkboard-buttons="true" auto-animate="true" auto-animate-easing="ease-in-out"}
 
 ::: columns
 ::: {.column width="30%"}
@@ -245,29 +245,29 @@ Environment Agency<br> =\> Rivers flows \<= <br>Geospatial, Temporal
 
 -   Different styles of end-points (files, services, APIs)
 
--   Some formats are more complex than others (I struggled with nested JSON, but ...)
+-   Some formats are more complex than others
 
 -   Dealing with lots of data (even from the same source):
 
 -   Some formats change over time (even within a single doc)
 
--   Some datasets have internal inconsistencies (tough to handle without SMEs)
+-   Some datasets have internal inconsistencies (need SMEs)
 
 -   I had to make some grand assumptions (never a good thing)
 
-    -   Sure, the usual stuff ... outliers (errors or interesting?)
+    -   The usual stuff ... outliers etc (errors or interesting?)
 
     -   Even in something as simple as counting events
 
     -   Whether to join parts of river systems together
 
-## Discussion {background-color="cornsilk" chalkboard-buttons="true"}
+## Close {background-color="cornsilk" chalkboard-buttons="true"}
 
-Open-data is just one slice of a much wider data spectrum. The Open Data Institute ([ODI](https://theodi.org/about-the-odi/the-data-spectrum/)) have created excellent graphics summarising the [data spectrum](https://drive.google.com/drive/u/0/folders/1BzM_aV9B6d1AwQ1wf02vYW4XVDlGlFbO) that can be shared under [Creative Commons](https://creativecommons.org/licenses/) licences
+Open-data is just one slice of a much wider data spectrum. The Open Data Institute ([ODI](https://theodi.org/about-the-odi/the-data-spectrum/)) have created excellent graphics summarising the [data spectrum](https://drive.google.com/drive/u/0/folders/1BzM_aV9B6d1AwQ1wf02vYW4XVDlGlFbO) that can be shared under [Creative Commons](https://creativecommons.org/licenses/) licences.
 
-Points for discussion:
+Open-data can be transformative but it mush be used, and used wisely so that the current momentum in the water industry is maintained. Points to consider include:
 
--   The values of open-data include : Transparency, Trust, Innovation
+-   Value includes: Transparency, Trust, Innovation
 
 -   But there are costs including: Financial, Reputational, Processing, Support and documentation
 
