@@ -13,17 +13,17 @@ categories: [code, analysis, OSM, opendata, GIS, feature engineering, unaccounte
 
 # Overview of this post
 
-In this post I am going to explore opendata for mapping and geospatial analysis. I'll be using two awesome source from the [OpenStreetMap](https://www.openstreetmap.org/) and [Ordnance Survey](https://www.ordnancesurvey.co.uk/). These datasets are immense (both in termds of bytes and in terms of content! OpenStreetMap data is available under the Open Database License, as defined in [this copyright page](https://www.openstreetmap.org/copyright). The OS data open data products are covered by the [Open Government Licence](http://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/).
+In this post I am going to explore opendata for mapping and geo-spatial analysis. I'll be using two awesome source from the [OpenStreetMap](https://www.openstreetmap.org/) and [Ordnance Survey](https://www.ordnancesurvey.co.uk/). These data-sets are immense (both in terms of bytes and in terms of content! OpenStreetMap data is available under the Open Database License, as defined in [this copyright page](https://www.openstreetmap.org/copyright). The OS data open data products are covered by the [Open Government Licence](http://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/).
 
-To provide some focus, I will explore the datasets from as if I were trying to use them to help in a hunt for leakage in a UK water utility.
+To provide some focus, I will explore the data-sets from as if I were trying to use them to help in a hunt for leakage in a UK water utility.
 
 As an overview of this post I will be:
 
--   Setting the scene... explain the problem domain I'll be focussing on.
+-   Setting the scene... explain the problem domain I'll be focusing on.
 
 -   Collecting and exploring opendata made available in OSM and OS.
 
--   Mining the datasets for some useful metrics and features.
+-   Mining the data-sets for some useful metrics and features.
 
 -   Using these data, metrics and features to highlight geographic areas that:
 
@@ -31,7 +31,7 @@ As an overview of this post I will be:
 
     -   Might make it difficult to confidently differentiate between usage or leakage.
 
-Dont expect the answers to life-the-unverse-and-everything here, the domain is vast and I'm not going to have any real-world water data to contextualise using the opendata. I really will only scratch the surface in a necessairly simplistic way, but on the way I hope to highlight some sources of uncertainty can be investigated and resolved. In doing so, perhaps the targeting of leakage detection might be triaged appropriately into: prioritisation, deeper investigation, resolution of ambiguities and ultimately more efficient reduction of water leakage.
+Don't expect the answers to life-the-universe-and-everything here, the domain is vast and I'm not going to have any real-world water data to contextualise using the opendata. I really will only scratch the surface in a necessarily simplistic way, but on the way I hope to highlight some sources of uncertainty can be investigated and resolved. In doing so, perhaps the targeting of leakage detection might be triaged appropriately into: prioritisation, deeper investigation, resolution of ambiguities and ultimately more efficient reduction of water leakage.
 
 # Context
 
@@ -54,7 +54,7 @@ If the flow of water through all pipes *was* measured, then one might imagine a 
 
 [OpenStreetMap](https://www.openstreetmap.org/about) has been described as 'a cartographical wikipedia'. In turn,[Wikipedia](https://en.wikipedia.org/wiki/OpenStreetMap) describes [OpenStreetMap](https://www.openstreetmap.org/about) as a free, open geographic database updated and maintained by a community of volunteers via open collaboration. It's huge, 1.6 TB at the time of writing (you can download the lot if you really want to as detailed here: [HOW TO DOWNLOAD DATA FROM OPEN STREET MAP -- A COMPLETE GUIDE](https://mapscaping.com/how-to-download-data-from-open-street-map-a-complete-guide/#:~:text=At%20the%20time%20of%20writing%2C%20it%20has%20a,118%20GB%20when%20compressed%20and%201.6TB%20when%20uncompressed.))
 
-It holds structured geospatial data on natural and man-made features across the world. Detail range from local [coffee-shops](https://www.openstreetmap.org/query?lat=51.46993&lon=-1.04427), through to [route 66](https://www.openstreetmap.org/search?query=route%2066#map=19/35.17156/-103.66867) and [Mount Etna](https://www.openstreetmap.org/search?query=mount%20etna%20sicily#map=11/37.7490/14.9788). It's not just a map, each entry can contain detail like associated URLs, alternative names, etc.
+It holds structured geo-spatial data on natural and man-made features across the world. Detail range from local [coffee-shops](https://www.openstreetmap.org/query?lat=51.46993&lon=-1.04427), through to [route 66](https://www.openstreetmap.org/search?query=route%2066#map=19/35.17156/-103.66867) and [Mount Etna](https://www.openstreetmap.org/search?query=mount%20etna%20sicily#map=11/37.7490/14.9788). It's not just a map, each entry can contain detail like associated URLs, alternative names, etc.
 
 Note: Strong opinions are associated with OpenStreetmap. Some in support, some as detractors. I've included a couple below for balance. If you are thinking about using this dataset it is well worth reading both sides of the argument for / against.
 
@@ -62,21 +62,21 @@ Note: Strong opinions are associated with OpenStreetmap. Some in support, some a
 
 -   [Why OpenStreetMap is in Serious Trouble --- Emacsen's Blog](https://blog.emacsen.net/blog/2018/02/16/osm-is-in-trouble/)
 
-What is without doubt, is that there are time when crowd-sourcing and opendata can  shine, as was the case during the terrible aftermath of the earthquake in Haiti in 2010 when openstreetmap became an invaluable tool for understanding the ground-truth. 50,000 people from around the world re-mapped Haiti's transport networks and detail of the capital as [documented in this video](https://youtu.be/hqkEtyjj_hY).
+What is without doubt, is that there are time when crowd-sourcing and opendata can shine, as was the case during the terrible aftermath of the earthquake in Haiti in 2010 when openstreetmap became an invaluable tool for understanding the ground-truth. 50,000 people from around the world re-mapped Haiti's transport networks and detail of the capital as [documented in this video](https://youtu.be/hqkEtyjj_hY).
 
 ## 
 
 OS Zoomstack
 
-[Zoomstack](https://osdatahub.os.uk/downloads/open/OpenZoomstack) is another amazing opendata resource, this time provided and support by the Ordnance survey. It is part of a whole range of other [open datasets provided by OS](https://osdatahub.os.uk/downloads/open). zommstack comes as Geopackage or vectorLayers and can be visualised in GIS (e.g. [QGIS](https://www.qgis.org/en/site/)using [open styling from GIT](https://github.com/OrdnanceSurvey/OS-Open-Zoomstack-Stylesheets), there's an excellent guide on [adding OS open Zoomstack to QGIS here](https://www.linkedin.com/pulse/add-os-open-zoomstack-geopackage-qgis-elaine-owen/)) it's worth noting that the [OS also provides many other datasets](https://www.ordnancesurvey.co.uk/business-government/products) (some paid) including MasterMap and AddressBasePremium. These layers decorate the base UIDs provided in the opendata datasets with some extremely useful detail. Other mapping firms also sell layers that can help contextualise anything from where to locate a new shop to what kind of soil might be under your feet.
+[Zoomstack](https://osdatahub.os.uk/downloads/open/OpenZoomstack) is another amazing opendata resource, this time provided and support by the Ordnance survey. It is part of a whole range of other [open data-sets provided by OS](https://osdatahub.os.uk/downloads/open). zommstack comes as Geopackage or vectorLayers and can be visualised in GIS (e.g. [QGIS](https://www.qgis.org/en/site/)using [open styling from GIT](https://github.com/OrdnanceSurvey/OS-Open-Zoomstack-Stylesheets), there's an excellent guide on [adding OS open Zoomstack to QGIS here](https://www.linkedin.com/pulse/add-os-open-zoomstack-geopackage-qgis-elaine-owen/)) it's worth noting that the [OS also provides many other ](https://www.ordnancesurvey.co.uk/business-government/products)data-sets (some paid) including MasterMap and AddressBasePremium. These layers decorate the base UIDs provided in the opendata data-sets with some extremely useful detail. Other mapping firms also sell layers that can help contextualise anything from where to locate a new shop to what kind of soil might be under your feet.
 
 ## How can OpenStreetMap / Zoomstack data help find leakage
 
 As described in the section, introducing leakage targeting leakage requires knowledge of what *is not* leakage, i.e. legitimate consumption. OpenStreetmap and Zoomstack contain much information that can help contextualise leakage through the lens of consumption.
 
-It should be noted that in the real-world, many other datasets could and should be made available to contextualise leakage. For instance,
+It should be noted that in the real-world, many other data-sets could and should be made available to contextualise leakage. For instance,
 
--   Internal datasets:
+-   Internal data-sets:
 
     -   Asset data: water companies will have detail on the pipe-assets including location, age, material etc.) which can help highlight parts of the network that are prone to leakage. Some pipes may have have been refurbished or even replaced, so the history of the assets can be valuable too.
 
@@ -92,11 +92,11 @@ Lets return to OSM and zoomstack and consider two possible sources of insight th
 
 ## Example: Highlight places that may be prone to leakage
 
-For this I will explore Allotments. I was inspired by this excellent [blog post](https://sme-water.co.uk/demand-insights-using-open-source-data/) to explore allotments. The post focussed on improving understanding of consumption by
+For this I will explore Allotments. I was inspired by this excellent [blog post](https://sme-water.co.uk/demand-insights-using-open-source-data/) to explore allotments. The post focused on improving understanding of consumption by
 
 ## Example: Highlighting places where network connectivity might be complex
 
-Places where it may be difficult to know the true state of network configuration and or legimiate consumption. To illustrate this, I will explore areas that may have complex internal pipe-configurations such as hospitals or other areas wihc hmay have multiple buildings (and hence private networks of pipes) that may not be fully understood by the water utility in charge of the area.
+Places where it may be difficult to know the true state of network configuration and or legitimate consumption. To illustrate this, I will explore areas that may have complex internal pipe-configurations such as hospitals or other areas winch may have multiple buildings (and hence private networks of pipes) that may not be fully understood by the water utility in charge of the area.
 
 # Theme: Reducing uncertainty
 
@@ -107,7 +107,7 @@ So, to minimise leakage I might chose to target an area that has the largest amo
 For illustration lets pretend I'm tasked with reducing leakage in 'Anytown'. Anytown has been divided up into four equal-sized areas. I've only got enough resources to look for the location of leaks in one area and according to my computer, a water-balance (where consumption is deducted from total area in-flow) report:
 
 | Area      | Measured demand (l/s) | Estimated Consumption (l/s) | reported leakage (l/s) |
-|-----------------|-----------------|---------------------|-----------------|
+|-----------------|-----------------|--------------------|-----------------|
 | Anytown_1 | 1                     | 1                           | 0.0                    |
 | Anytown_2 | 2                     | 1                           | 1.0                    |
 | Anytown_3 | 2                     | 1                           | 1.0                    |
@@ -115,7 +115,7 @@ For illustration lets pretend I'm tasked with reducing leakage in 'Anytown'. Any
 
 I know that this is naiive... In the real-world there local knowledge, extra information about the layouts of the areas, other figures like total demand and consumption etc, a concept of "operability". All of these things would help me to judge how much to believe the figures and hence where to go first
 
-andTaken to an extreme, imagine I manage three areas...:
+and taken to an extreme, imagine I manage three areas...:
 
 Area 1 has low reported leakage
 
@@ -141,7 +141,7 @@ library(leaflet)    # I like the interactivity of leaflet, but there are many ot
 library(DT) # for niely interactive tables
 library(crosstalk) # for joining htmlwidgets like DT and leaflet
 library(htmltools) # I'll use this to customise some tables in the code
-library(osmdata) # this package maps getting small datasets from OSM simple and quick
+library(osmdata) # this package maps getting small data-sets from OSM simple and quick
 sigfig <- function(x, nsmall = 2) {
   format(round(x, nsmall), nsmall = nsmall)
 }
@@ -157,7 +157,7 @@ my_datatable <- function(x) {
 
 ## Defining the boundary of the area I will be searching
 
-I could define geospatial boundaries in many ways, but I'm choosing to let OSM define the boundary box for Reading, Berks:
+I could define geo-spatial boundaries in many ways, but I'm choosing to let OSM define the boundary box for Reading, Berks:
 
 ```{r get a boundary from OSM based on a place name , warning=FALSE}
 focus_area <- 'reading uk'
@@ -176,10 +176,9 @@ if(F) {
 
 ```
 
-
 ## Exploring OSM: Allotments
 
-The OSM dataset has an a long list of features as shown below! (note: this list including allotments, and other potentially useful categories.  We will explore hospitals and amenities later in this post)
+The OSM dataset has an a long list of features as shown below! (note: this list including allotments, and other potentially useful categories. We will explore hospitals and amenities later in this post)
 
 ```{r exploring OSM data}
 
@@ -189,15 +188,19 @@ The OSM dataset has an a long list of features as shown below! (note: this list 
   enframe(name = NULL, value = "feature") %>%
   my_datatable()
 ```
-OSM sometimes stores extra attributes for features,  but in this case, allotments 
+
+OSM sometimes stores extra attributes for features, but in this case, allotments
+
 ```{r OSM has nothing special associated with allotments , warning=FALSE}
-  #| Note that not all features have attributes.
-  #| For example, the feature “allotments” has no additional attributes; when you run available_tags() on a feature without those additional attributes, the output will be character(0):
-  available_tags(feature = "allotments")
-  # note: there are lots of amenities (including hospital and college and university)
+# Note that not all features have attributes.
+# For example, the feature “allotments” has no additional attributes;
+# when you run available_tags() on a feature without those additional attributes, the output will be character(0):
+# available_tags(feature = "allotments")
+# note: there are lots of amenities (including hospital and college and university)
 
 ```
-The osmdata package has a simple interface to load small chunks of OSM data.  A few lines of code are all that's needed to load all allotments in the Reading area:
+
+The osmdata package has a simple interface to load small chunks of OSM data. A few lines of code are all that's needed to load all allotments in the Reading area:
 
 ```{r read allotments in Reading from OSM, warning=FALSE, message=FALSE}
 # Query for reading allotments
@@ -209,17 +212,15 @@ focus_allotments <- focus_boundary %>%
 glimpse(focus_allotments$osm_polygons %>% as_tibble())
 ```
 
-
-
 ## Exploring Zoomstack: Allotments
 
-As shown below, there are lots of layers in zoomstack.  
+As shown below, there are lots of layers in zoomstack.
 
 ```{r list the layers contained in zoomstack , warning=FALSE}
 sf::st_layers("C:/Users/leoki/DATA/OS/OS_Open_Zoomstack/OS_Open_Zoomstack.gpkg")
 ```
 
-Allotments are stored in the *greenspace* layer and have the *type* attribure defined as 'Allotments Or Community Growing Spaces'.  Note: To find this out I look at the zoomstack geodatabase in QGIS, focussing on an aread I knew had allotments, then inspected all the layers to explore which ones contained what information.  The next section of code loads *all* the allotments in the zoomstack greens[ace layer and then filters the to those that are in the same area we focussed on on OSM. 
+Allotments are stored in the *greenspace* layer and have the *type* attribute defined as 'Allotments Or Community Growing Spaces'. Note: To find this out I look at the zoomstack geodatabase in QGIS, focusing on an area I knew had allotments, then inspected all the layers to explore which ones contained what information. The next section of code loads *all* the allotments in the zoomstack greens\[ace layer and then filters the to those that are in the same area we focused on on OSM.
 
 ```{r read from a zoomstack geopackage that was downloaded earlier, warning=FALSE}
 
@@ -294,13 +295,13 @@ leaflet() %>%
   addTiles(group = "OSM (default)") %>%
   addPolygons(data = zs_allotments,
               group = zs_groupname,
-              color = "red",
-              label = ~paste0("Allotments Or CGS - ", sigfig(area))
+              color = "blue",
+              label = ~paste0("Zoomstack Allotments Or CGS - ", sigfig(area))
               ) %>%
   addPolygons(data = tidy_allotments,
               group = osm_groupname,
-              color = "orange",
-              label = ~paste0(name, " - ", sigfig(area))
+              color = "red",
+              label = ~paste0("OSM ", name, " - ", sigfig(area))
               ) %>%
   addMarkers(data = sd, group= osm_groupname) %>%
   addLayersControl(
@@ -316,7 +317,6 @@ datatable(sd,
 
 
 ```
-
 
 # Summary
 
