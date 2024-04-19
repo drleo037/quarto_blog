@@ -58,7 +58,7 @@ library(lubridate)  # I'm sure lubridate has been added to the tidyverse, old ha
 library(httr)       # we will use this to collect data from the internet
 library(sf)         # I'm going to plot some maps. sf helps with any spatial stuff
 library(leaflet)    # I like the interactivity of leaflet, but there are many other packages to plot maps.
-source(here::here("../shiny/openRivers/functions.R"))
+source(here::here("../openRivers/functions.R"))
 ```
 
 ## Step 1: Collect the data from the API
@@ -68,37 +68,37 @@ To help new users get started, *Thames Water* has also provided code snippets in
 ```{r collect data from the Thames API}
 # start by gathering sensor data from Thames Water for the Thames
 
-#| you can create and retrieve API tokes from here: https://data.thameswater.co.uk/s/application-listing
-#| I like to use keyring:: to keep secrets away from version control
-#| So in an unpublished bit of code I have already pushed the secrets as follows:
-#| keyring::key_set_with_value(service = "thames_api", username = "CLIENT_ID", password = "<MY ID>")
-#| keyring::key_set_with_value(service = "thames_api", username = "CLIENT_SECRET", password = "<MY PW>")
+# you can create and retrieve API tokes from here: https://data.thameswater.co.uk/s/application-listing
+# I like to use keyring:: to keep secrets away from version control
+# So in an unpublished bit of code I have already pushed the secrets as follows:
+# keyring::key_set_with_value(service = "thames_api", username = "CLIENT_ID", password = "<MY ID>")
+# keyring::key_set_with_value(service = "thames_api", username = "CLIENT_SECRET", password = "<MY PW>")
 
 CLIENT_ID <- keyring::key_get(service = "thames_api", "CLIENT_ID")
 CLIENT_SECRET <- keyring::key_get(service = "thames_api", "CLIENT_SECRET")
-#| modify this URL as desired to access the different end points.
+# modify this URL as desired to access the different end points.
 URL <- "https://prod-tw-opendata-app.uk-e1.cloudhub.io/data/STE/v1/DischargeCurrentStatus"
-#| add here any query parameters if using them e.g. date filters, leave as '' for none.
+# add here any query parameters if using them e.g. date filters, leave as '' for none.
 PARAMS <- ""
 
-#| send the request
+# send the request
 res <- httr::GET(url = URL, 
                  httr::add_headers(client_id = CLIENT_ID, client_secret = CLIENT_SECRET),
                  query = PARAMS)
 
-#| check status and return only valid requests
+# check status and return only valid requests
 if (httr::status_code(res) != 200){
   warning(paste("Request failed with status code: ", httr::status_code(res)))
 } else {
-  #| parse the response
+  # parse the response
   content <- httr::content(res)
   
-  #| extract the edm_raw
+  # extract the edm_raw
   
-  #| and return
+  # and return
   edm_raw <- dplyr::bind_rows(content$items)
 }
-#| it's worth remembering when we collected the data as it could change each time we collect it:
+# it's worth remembering when we collected the data as it could change each time we collect it:
 data_collection_dt <- Sys.time()
 ```
 
@@ -203,7 +203,7 @@ notIcon <- awesomeIcons(
 # to add a title to a leaflet map: https://stackoverflow.com/questions/49072510/r-add-title-to-leaflet-map
 # I'm not sure hwy,  but this doesnt seem to render properly when this is published
 # but it works in perview so I'm leaving the log inplace
- library(htmltools)
+library(htmltools)
 tag.map.title <- tags$style(HTML("
   .leaflet-control.map-title { 
     transform: translate(-50%,20%);
@@ -225,17 +225,17 @@ title <- tags$div(
 
 # I like to create a base-map then add layers (you don't have to break the steps)
 base_map <- leaflet() %>%
-  #| Base groups
+  # Base groups
   addTiles(group = "OSM (default)") %>%
-  addProviderTiles(providers$Stamen.Terrain, group = "Terrain") %>%
-  addProviderTiles(providers$Stamen.TonerLite, group = "Toner Lite") %>%
+#  addProviderTiles(providers$Stamen.Terrain, group = "Terrain") %>%
+#  addProviderTiles(providers$Stamen.TonerLite, group = "Toner Lite") %>%
   addControl(title, position = "topleft", className="map-title")
 
 # now add layers to the basemap,  one for each state for the monitors
 base_map %>%
   addAwesomeMarkers(data = edm_df %>%
                       filter(display_status == "Offline"),
-  #|                  clusterOptions = markerClusterOptions(),
+  #                  clusterOptions = markerClusterOptions(),
                     label = ~asHTML(paste0('Name: ', location_name, '<br>',
                                             'Watercourse: ', receiving_water_course, '<br>',
                                             'DateTime: ', data_collection_dt, '<br>',
@@ -246,7 +246,7 @@ base_map %>%
   ) %>%
   addAwesomeMarkers(data = edm_df %>%
                       filter(display_status == "Discharging"),
- #|                   clusterOptions = markerClusterOptions(),
+ #                   clusterOptions = markerClusterOptions(),
                     label = ~asHTML(paste0('Name: ', location_name, '<br>',
                                             'Watercourse: ', receiving_water_course, '<br>',
                                             'DateTime: ', data_collection_dt, '<br>',
@@ -257,7 +257,7 @@ base_map %>%
   ) %>%
     addAwesomeMarkers(data = edm_df %>%
                         filter(display_status == "Not discharging"),
-                      #|                    clusterOptions = markerClusterOptions(),
+                      #                    clusterOptions = markerClusterOptions(),
                       label = ~asHTML(paste0('Name: ', location_name, '<br>',
                                             'Watercourse: ', receiving_water_course, '<br>',
                                             'DateTime: ', data_collection_dt, '<br>',
@@ -268,7 +268,7 @@ base_map %>%
     ) %>%
     addAwesomeMarkers(data = edm_df %>%
                         filter(display_status == "Discharge recorded in the last 48 hours"),
-                      #|                    clusterOptions = markerClusterOptions(),
+                      #                    clusterOptions = markerClusterOptions(),
                       label = ~asHTML(paste0('Name: ', location_name, '<br>',
                                             'Watercourse: ', receiving_water_course, '<br>',
                                             'DateTime: ', data_collection_dt, '<br>',
@@ -278,7 +278,7 @@ base_map %>%
                       group = "Recent Discharge EDM"
     ) %>%
     addLayersControl(
-    baseGroups = c("OSM (default)", "Terrain", "Toner Lite"),
+#    baseGroups = c("OSM (default)", "Terrain", "Toner Lite"),
     overlayGroups = c("Discharging EDM", "Not discharging EDM", "Recent Discharge EDM", "Offline EDM"),
     options = layersControlOptions(collapsed = FALSE))
 ```
@@ -379,10 +379,10 @@ This use case is less straight-forward than use case 1. This is because to answe
 
 ```{r usecase 2:  Reporting the total duration of discharges by site, warning = FALSE, message = FALSE}
 
-#| first I write a function
-#| (as I'm going to be doing the same pairing TWICE)
-#| one for the start - stop events for each EDM
-#| and again for the offline start / stop events
+# first I write a function
+# (as I'm going to be doing the same pairing TWICE)
+# one for the start - stop events for each EDM
+# and again for the offline start / stop events
 pair_edm_events <- function(this_df, start = "start", stop = "stop") {
   starts_df <- this_df %>%
     filter(alert_type == start) %>%
@@ -459,22 +459,22 @@ First I will write a function that will extract the state of the EDMs *given* a 
 
 ```{r get_edm_status_at function, warning = FALSE}
 
-#| this function is more complicated than I initialy imagined.
-#| the complexities arise because some EDMs can have a number of coincident states
-#| e.g. they can be marked as offline *and* dischargin
-#| having compared the live data with histtoric data, and the outputs of this function
-#| I any beginning to assume that sites can be offline (unreliable) but still chatter away
-#| # The function does the following:
-#| 1) creates 'current_discharges' ... a list of EDMs that were discharing at 'historic_dt'
-#|    by filtering any start-stop events that bracket the 'historic_dt' (start <= historic_dt <= stop)
-#|    NOTE tis list include offline and normal start/stops
-#| 2) create a 'recent_discharges'  dataframe by checking for avtive events up to 2 days previous
-#| 3) creates a 'not discharging' list of EDMs wher historic_dt is not bracketed to start-stop 
-#| 4) these three lists are them combined and any conflicing (duplicate) states are resolved
-#|    by (conveniently) ranking the status in reverse order by EMD alpabetically such that
-#|    (O)ffline trumps 
-#|    (D)ischarging trumps
-#|    (N)ot discharging.
+# this function is more complicated than I initialy imagined.
+# the complexities arise because some EDMs can have a number of coincident states
+# e.g. they can be marked as offline *and* dischargin
+# having compared the live data with histtoric data, and the outputs of this function
+# I any beginning to assume that sites can be offline (unreliable) but still chatter away
+# # The function does the following:
+# 1) creates 'current_discharges' ... a list of EDMs that were discharing at 'historic_dt'
+#    by filtering any start-stop events that bracket the 'historic_dt' (start <= historic_dt <= stop)
+#    NOTE tis list include offline and normal start/stops
+# 2) create a 'recent_discharges'  dataframe by checking for avtive events up to 2 days previous
+# 3) creates a 'not discharging' list of EDMs wher historic_dt is not bracketed to start-stop 
+# 4) these three lists are them combined and any conflicing (duplicate) states are resolved
+#    by (conveniently) ranking the status in reverse order by EMD alpabetically such that
+#    (O)ffline trumps 
+#    (D)ischarging trumps
+#    (N)ot discharging.
 get_edm_status_at <- function(this_df, historic_dt) {
   if(historic_dt > max(this_df$date_time.stop, na.rm = T)) {
     warning(str_c(historic_dt, " is out or range of data: ", range(this_df$date_time)))
@@ -577,7 +577,7 @@ Now let's use the function to extract the status of EDMs on the 2023-03-09 at 10
 ```{r reconstruct the state of the EDMs at some point in time, warning = FALSE, message = FALSE}
 
 # test that the reconstructor works
-edm__live_df <- readRDS("C:/Users/leoki/CODE/R-Home/shiny/openRivers/cacheOpenRivers/edm_df_2023-03-09.Rds")
+edm__live_df <- readRDS("C:/Users/leoki/CODE/R/2023/openRivers/cacheOpenRivers/edm_df_2023-03-09.Rds")
 
 target_dt <- get_download_date(edm__live_df)
 
@@ -616,7 +616,7 @@ So far we've counted the number of events, and paired start/stop to allow discha
 
 ```{r construct a timeseries of the numnber of discharges at some fixed interval (daily), warning=FALSE, message=FALSE}
 
-#| The following code creates a series of dates
+# The following code creates a series of dates
 event_by_day <- seq.Date(from = as.Date(min(edm_historic_df$date_time)),
                         to = as.Date(max(edm_historic_df$date_time)),
                         by = "day") %>%
@@ -680,7 +680,7 @@ The value of *open-data* is that it empowers exploration and innovation. If you 
 
 ```{r visualise the EDM data... worst performing sites, warning = FALSE, message = FALSE}
 
-#| simple EDA of the Thames EDM data-set ----
+# simple EDA of the Thames EDM data-set ----
 p <- edm_df %>%
   group_by(receiving_water_course) %>%
   filter(max(discharge_duration) > days(3)) %>%
@@ -696,7 +696,7 @@ p <- edm_df %>%
        x = "water course name",
        caption  = "Data from Thames Water's open API: https://data.thameswater.co.uk/s/apis")
 
-#| plotly is good for interactive ggplots:
+# plotly is good for interactive ggplots:
 plotly::ggplotly(p)
 ```
 
