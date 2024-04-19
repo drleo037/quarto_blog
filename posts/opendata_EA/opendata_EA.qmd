@@ -112,10 +112,10 @@ collect_items_from_url <- function(url) {
       },
       error = function(cond) {
         warning("using do.call backup conversion for DF")
-        #| Sometimes the standard (bind_rows) option:
-        #| data <- dplyr::bind_rows(content$items)
-        #| fails because one record has two values
-        #| (and hence must be a list rather than a numeric)
+        # Sometimes the standard (bind_rows) option:
+        # data <- dplyr::bind_rows(content$items)
+        # fails because one record has two values
+        # (and hence must be a list rather than a numeric)
         do.call(rbind, content$items) %>%
           as_tibble() %>%
           mutate(across(everything(), as.character)) %>%
@@ -145,10 +145,10 @@ collect_items_from_url <- function(url) {
 #' load_ea_data()
 #'
 load_ea_data <- function() {
-  #| I'm going to create 3 datasets
-  #|  1. a table of stations (including locations etc)
-  #|  2. a table of measurements (including units and a link to the station)
-  #|  3. a table of current values associated with these measurements
+  # I'm going to create 3 datasets
+  #  1. a table of stations (including locations etc)
+  #  2. a table of measurements (including units and a link to the station)
+  #  3. a table of current values associated with these measurements
   
   # http://environment.data.gov.uk/flood-monitoring/doc/reference
   
@@ -177,9 +177,9 @@ load_ea_data <- function() {
              remove = F) %>% # I want to keep the easting & northing
     rename(geom = geometry) # My standard name for geometries is "geom"
   
-  #| 2. EA extract station measurements ----
-  #| stations can have many measurements
-  #| so unnest the details of each measurement
+  # 2. EA extract station measurements ----
+  # stations can have many measurements
+  # so unnest the details of each measurement
   message("creating measurements table")
   ea_station_measurements <- json_payload_with %>%
     spread_all %>%
@@ -192,9 +192,9 @@ load_ea_data <- function() {
     rename(measure_id = id) # measure_id is the primary key for measures
   
   
-  #| 3. EA get the latest readings available ----
-  #| get a latest data for all sensors
-  #| (new GET request, differnt URL)
+  # 3. EA get the latest readings available ----
+  # get a latest data for all sensors
+  # (new GET request, differnt URL)
   message("collecting currrent measurements")
   ea_latest_raw <- collect_items_from_url(url = "http://environment.data.gov.uk/flood-monitoring/data/readings?latest") %>%
     mutate(dateTime = lubridate::as_datetime(dateTime)) %>%
@@ -208,15 +208,15 @@ load_ea_data <- function() {
     rename(measurement_id = id) %>%
     left_join(ea_station_measurements %>% select(measure_id, unit_name))
   
-  #| I'm returning all three dataframes as a list
-  #| There's lots of way to handle this and perhaps this insnt
-  #| as normalised as it could be, but I've chosen to do it like this
-  #| You could write two or three separate routines to collect
-  #| each kind of data,
-  #| Or represent the stations & measurements (paired) datasets
-  #| differently (say have the measurements nested inside the
-  #| stations records)
-  #| This is "just" a blog, so I'm not over-thinking the alternatives
+  # I'm returning all three dataframes as a list
+  # There's lots of way to handle this and perhaps this insnt
+  # as normalised as it could be, but I've chosen to do it like this
+  # You could write two or three separate routines to collect
+  # each kind of data,
+  # Or represent the stations & measurements (paired) datasets
+  # differently (say have the measurements nested inside the
+  # stations records)
+  # This is "just" a blog, so I'm not over-thinking the alternatives
   message("creating a list containing all three EA dataframes")
   result <- list("ea_stations_sf" = ea_stations_sf,
                  "ea_station_measurements" = ea_station_measurements,
@@ -243,9 +243,9 @@ load_ea_data <- function() {
 #' asHTML("<p>This is a paragraph</p>")
 #'
 asHTML <- function(text){
-  #| this helper function will be useful when I
-  #| define the content of labels that are diplayed
-  #| when the mouse hovers on a monitor in the leaflet map 
+  # this helper function will be useful when I
+  # define the content of labels that are diplayed
+  # when the mouse hovers on a monitor in the leaflet map 
   attr(text, "html") <- TRUE
   class(text) <- c("html", "character")
   return(text)
@@ -276,8 +276,8 @@ While writing this post, I was not entirely sure whether to include this step he
 
 ```{r download a shape file of the water company boundaries}
 
-#| Stack exchange once again makes it easy to make reproducible code
-#| https://stackoverflow.com/questions/64850643/why-cant-i-get-st-read-to-open-a-shapefile-from-a-compressed-file-map-is-read
+# Stack exchange once again makes it easy to make reproducible code
+# https://stackoverflow.com/questions/64850643/why-cant-i-get-st-read-to-open-a-shapefile-from-a-compressed-file-map-is-read
 
 read_shape_URL <- function(URL){
   cur_tempfile <- tempfile()
@@ -343,14 +343,14 @@ Digging deeper into one of the measures with a strange qualifier... it's not som
 
 ```{r cleanse the measurement qualifier dataset}
 
-#| Note: It's bad practice to do this here
-#| It's especially bad practice to overwrite a variable
-#| as it makes reproducibility difficult
-#| what I *Should* be doing is to go back to the function
-#| that I wrote to load the data and put this code in there
-#| but if I did that...
-#| The journey I'd gone on wile exploring the data wouldnt
-#| be as clear to the reader,  so I'm leaving it here in this blog
+# Note: It's bad practice to do this here
+# It's especially bad practice to overwrite a variable
+# as it makes reproducibility difficult
+# what I *Should* be doing is to go back to the function
+# that I wrote to load the data and put this code in there
+# but if I did that...
+# The journey I'd gone on wile exploring the data wouldnt
+# be as clear to the reader,  so I'm leaving it here in this blog
 
 ea_dfs$ea_station_measurements <- 
   ea_dfs$ea_station_measurements %>%
@@ -468,7 +468,7 @@ Note: there are lots of water companies (some of which serve a number of differe
 
 {r plot histograms of percent loading on stages, warning=FALSE, message=FALSE}
 
-p\<- ea_dfs\$ea_stats %\>% st_join(wc_bundaries_sf %\>% select(AreaServed, COMPANY) %\>% filter(st_area(geom) \> units::set_units(10e8, m\^2) )) %\>% #\| Some measurements fall outside the boundaries of the big WACs #\| the can convert NA to "Other" (more readable) using coalesce() mutate(COMPANY = coalesce(COMPANY, "Other")) %\>% as_tibble() %\>% ggplot() + geom_histogram(aes(x = pct_typical_high, colour = COMPANY, fill = COMPANY), show.legend = FALSE) + scale_x\_continuous(labels = scales::percent, limits = c(-0.1, 1.1)) + facet_wrap(\~ COMPANY, scales = "free") + labs(title = paste0("Loading of river stages (Data collected from EA API:", data_collection_dt, ")"), subtitle = paste0("0% = readings at typical low (only 1 in 20 readings have been lower)\n100% = readings at typical high (only 1 in 20 readings have been higher)"), x = "Current gauge level as percentage of typical high levels (baseline typical low levels)", y = "Count of station stages")
+p\<- ea_dfs\$ea_stats %\>% st_join(wc_bundaries_sf %\>% select(AreaServed, COMPANY) %\>% filter(st_area(geom) \> units::set_units(10e8, m\^2) )) %\>% \# Some measurements fall outside the boundaries of the big WACs \# the can convert NA to "Other" (more readable) using coalesce() mutate(COMPANY = coalesce(COMPANY, "Other")) %\>% as_tibble() %\>% ggplot() + geom_histogram(aes(x = pct_typical_high, colour = COMPANY, fill = COMPANY), show.legend = FALSE) + scale_x_continuous(labels = scales::percent, limits = c(-0.1, 1.1)) + facet_wrap(\~ COMPANY, scales = "free") + labs(title = paste0("Loading of river stages (Data collected from EA API:", data_collection_dt, ")"), subtitle = paste0("0% = readings at typical low (only 1 in 20 readings have been lower)\n100% = readings at typical high (only 1 in 20 readings have been higher)"), x = "Current gauge level as percentage of typical high levels (baseline typical low levels)", y = "Count of station stages")
 
 p
 
@@ -502,9 +502,9 @@ We can ask the API to return *recent* values recorded for measurements (up to ab
 
 ```{r Gather time-series data for a sample of station gauge levels, warning=F, message=F}
 
-#| I'm setting a seed to the sample_n gives me back
-#| # a consistent set of time series
-#| (as I'll refere to them in the text)
+# I'm setting a seed to the sample_n gives me back
+# # a consistent set of time series
+# (as I'll refere to them in the text)
 set.seed(037) 
 ea_dfs$ea_sample_timeseries <- ea_dfs$ea_stations_sf %>%
   filter(river_name == "River Thames") %>%
@@ -520,10 +520,10 @@ ea_dfs$ea_sample_timeseries <- ea_dfs$ea_stations_sf %>%
          parameter_name, qualifier,
          unit_name, label, easting,
          measure_id, historic_url) %>%
-  #| this next line calls:
-  #| collect_items_from_url(historic_url) 
-  #| for each row of the input dataframe
-  #| and adds a new variable (the dataframe timseries) to "readings"
+  # this next line calls:
+  # collect_items_from_url(historic_url) 
+  # for each row of the input dataframe
+  # and adds a new variable (the dataframe timseries) to "readings"
   mutate(readings = map(historic_url, collect_items_from_url)) %>%
   # we can expand / flatten the nested dataframe by calling unnest
   unnest(readings)
@@ -633,16 +633,16 @@ This is "simply" a case of iterating over each date for which I want to collect 
 
 ```{r download the CSVs containing historic archives of EA measurements, warning=FALSE}
 
-#| this code "Map"s a list of dates onto download.file.
-#| "Map can be thought of as a loop.  it's the same as:
-#| for (this_date in (list of dates) {
-#|   create URL of csv from "https://envi[...]archive/readings-" & this_date
-#|   download the file from the URL into the local directory defined by csv_path
-#| }
-#| I've defined my own csv_path, it's not relevant to this post
-#| NOTE
-#| IK've commented out the code.
-#| I dont want to collect all the data every time I publish this post!
+# this code "Map"s a list of dates onto download.file.
+# "Map can be thought of as a loop.  it's the same as:
+# for (this_date in (list of dates) {
+#   create URL of csv from "https://envi[...]archive/readings-" & this_date
+#   download the file from the URL into the local directory defined by csv_path
+# }
+# I've defined my own csv_path, it's not relevant to this post
+# NOTE
+# IK've commented out the code.
+# I dont want to collect all the data every time I publish this post!
 if(FALSE) {
   Map(function(i) {
     f = str_c("https://environment.data.gov.uk/flood-monitoring/archive/readings-", i, ".csv")
@@ -665,18 +665,21 @@ The process of loading the CSVs into duckDB is very simple (see folded code if y
 # Note: this path only works on my config:
 duck_path <- "C:/Users/leoki/DATA/EA/duckDB/duckDB_EA"
 
-#| loading all 352 files takes:
-#|    user  system elapsed 
-#|    139.19   28.58  288.86 
-#|    .
-#| This code:
-#|   1) gets a list of CSVs that can be loaded (as per previous code chunk)
-#|   2) establishes a connection to a (new) duckDB database
-#|   3) 
-#| NOTE
-#| I've commented out the code.
-#| I dont want to collect all the data every time I publish this post!
+# loading all 352 files takes:
+#    user  system elapsed 
+#    139.19   28.58  288.86 
+#    .
+# This code:
+#   1) gets a list of CSVs that can be loaded (as per previous code chunk)
+#   2) establishes a connection to a (new) duckDB database
+#   3) 
+# NOTE
+# I've commented out the code.
+# I dont want to collect all the data every time I publish this post!
 if(FALSE) {
+  library(DBI)
+  library(duckdb)
+
   Sys.setenv(DUCKDB_NO_THREADS = 8)
   # get a list of files tro import....
   files = dir(path = csv_path, pattern = "csv$", full.names = T)
@@ -697,7 +700,7 @@ value DOUBLE);")
 }
 ```
 
-I also push another table into duckDB. This is a dataset that provides context to the measurement values. I chose to do this so that I will be able to slice by type of measurement and location inside duckDB , thereby making the most of the efficiencies and larger-than-memory analytics capabilities.
+I also push another table into duckDB. This is a dataset that provides context to the measurement values. I chose to do this so that I will be able to slice by type of measurement and location inside duckDB , thereby making the most of the efficiency and larger-than-memory analytics capabilities.
 
 ```{r load a table that contains the details of the measurements themselves, warning=FALSE, message=FALSE}
 
@@ -788,7 +791,7 @@ ea_daily_readings_stage <- ea_mmt_tbl %>%
 
 ```
 
-Note: The code I wrote above is a "pipeline" of data-manipulation in *dplyr* syntax. Some of my favourite aspects of using d(b)plyr is that:
+Note: The code I wrote above is a "pipeline" of data-manipulation in *dplyr* syntax. Some of my favorite aspects of using d(b)plyr is that:
 
 -   d(b)plyr is very readable (each data processing "verb" such as "filter" and "select" is almost self-explanatory)
 
@@ -796,7 +799,7 @@ Note: The code I wrote above is a "pipeline" of data-manipulation in *dplyr* syn
 
 -   The analysis is "lazy", which just means that it will only process data if and when it needs to. Until the point when the data is actually needed the code just builds up a set of instructions (or recipe). at the point of execution there can be significant optimisation of *how* the instructions are implemented. In the previous example, the data is *not* really needed until I called "collect", which returns the results into my session. At the point of collection I have sub-setted the data geographically and by measurements type *and* I have summarise the sub-day data into daily averages so the memory overhead of calculating the result is considerably smaller than it would have been otherwise. In this case I have processed and joined what was once 20Gb of CSVs using less than 2Gb of memory in under 12 seconds.
 
--   A particularly attractive feature is that the instructions can be presented as RDBMS style SQL query. In fact, in dbplyr, this is exactly how the requests of a pipeline are parcelled up and sent to databases. The process is rock-solid, even though the queries generated from pipelines can become quite sophisticated. The SQL that was executed by the previous pipeline is shown below:
+-   A particularly attractive feature is that the instructions can be presented as RDBMS style SQL query. In fact, in dbplyr, this is exactly how the requests of a pipeline are parceled up and sent to databases. The process is rock-solid, even though the queries generated from pipelines can become quite sophisticated. The SQL that was executed by the previous pipeline is shown below:
 
 ```{r looking at SQL generated by the dbplyr pipeline, warning=FALSE, message=FALSE }
 ea_mmt_tbl %>%
@@ -823,9 +826,9 @@ It's good practice to disconnect from the database when we're finished with it (
 DBI::dbDisconnect(con)
 ```
 
-#### Historic data analysis step 4: visualising the time-series
+#### Historic data analysis step 4: visualizing the time-series
 
-Now we can plot or analyse the time-series data however we want. In the graph below I've plotted a daily summary of median gauge levels and rainfall measurements, but there is a huge amount of insight waiting the historic datasets.
+Now we can plot or analyse the time-series data however we want. In the graph below I've plotted a daily summary of median gauge levels and rainfall measurements, but there is a huge amount of insight waiting the historic data-sets.
 
 ```{r plot a high level summary of river levels and rainfall near the River Thames, warning=FALSE, message=FALSE}
 p <- ea_daily_readings_stage %>%
@@ -849,7 +852,7 @@ plotly::ggplotly(p)
 
 The plot shown above is interactive, hover over some of the spikes in rainfall (there's an obvious one on the 2023-03-08), then hover over the corresponding spike in river levels. There looks to be a lag of approximately a day or two between heavy rain and peak flows in rivers.
 
-# Summarising river loadings by water company
+# Summarizing river loading by water company
 
 ## River loading statistics
 
@@ -892,8 +895,8 @@ p<- ea_dfs$ea_stats %>%
   st_join(wc_bundaries_sf %>%
             select(AreaServed, COMPANY) %>%
             filter(st_area(geom) > units::set_units(10e8,  m^2) )) %>%
-  #| Some measurements fall outside the boundaries of the big WACs
-  #| the can convert NA to "Other" (more readable) using coalesce()
+  # Some measurements fall outside the boundaries of the big WACs
+  # the can convert NA to "Other" (more readable) using coalesce()
   mutate(COMPANY = coalesce(COMPANY, "Other")) %>% 
   as_tibble() %>%
   ggplot() +

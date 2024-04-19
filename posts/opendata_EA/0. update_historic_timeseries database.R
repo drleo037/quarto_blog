@@ -6,39 +6,8 @@
 library(tidyverse)
 csv_path <- "C:/Users/leoki/DATA/EA/archive/"
 
-all_archived_data <- list.files(csv_path, pattern = "^reading") %>%
-  enframe(name = NULL, value = "filename") %>%
-  mutate(archive_date = str_extract(filename, pattern = "[0-9]*-[0-9][0-9]-[0-9][0-9]")) %>%
-  mutate(archive_date = lubridate::ymd(archive_date)) %>%
-  arrange(desc(archive_date))
 
-from_date <- max(all_archived_data$archive_date) + days(1)
-to_date <- as.Date(Sys.Date()) - days(2) # -2 because EA is about 2 days lagging with archives
-as.integer(to_date - from_date) * 50 / 1000
-by_date <- 1
-
-
-#r download the CSVs containing historic archives of EA measurements, warning=FALSE}
-
-#| this code "Map"s a list of dates onto download.file.
-#| "Map can be thought of as a loop.  it's the same as:
-#| for (this_date in (list of dates) {
-#|   create URL of csv from "https://envi[...]archive/readings-" & this_date
-#|   download the file from the URL into the local directory defined by csv_path
-#| }
-#| NOTE: this will fail unglamorously if a CSV isnt present e.g. 2023-04-04
-if(from_date < to_date) {
-  Map(function(i) {
-    f = str_c("https://environment.data.gov.uk/flood-monitoring/archive/readings-", i, ".csv")
-    download.file(f, destfile = str_c(csv_path, basename(f)))
-  }, seq.Date(from = from_date,
-              to = to_date,
-              by = by_date)
-  )
-  # this took 1hr 12min to get all 352 56Gb csvs
-}
-
-# push them into duckDB...
+# push the CSVs into duckDB...
 library(duckdb) #  implicitly loads required package DBI
 duck_path <- "C:/Users/leoki/DATA/EA/duckDB/duckDB_EA"
 # establish a connection to the duckDB database...
@@ -53,6 +22,17 @@ library(dplyr)
 library(dbplyr)
 
 # get handles to the tables into the database
+
+# I'm appending here, so I dont want to recreate the table
+if(F) {
+  dbExecute(con, "DROP TABLE ea_measurements")
+  # only create this once
+  dbExecute(con, "CREATE TABLE ea_measurements(
+      dateTime TIMESTAMP,
+      measure  VARCHAR(100),
+      value DOUBLE);")
+}
+
 
 ea_mmt_tbl <- tbl(con, "ea_measurements") # the timeseries data
 ea_stnmmt_tbl <- tbl(con, "ea_station_measurements") # context for the timeseries
@@ -75,38 +55,48 @@ all_dates_in_db <- ea_mmt_tbl %>%
 
 
 
-# I'm appending here, so I dont want to recreate the table
-if(F) {
-  # only create this once
-  dbExecute(con, "CREATE TABLE ea_measurements(
-      dateTime TIMESTAMP,
-      measure  VARCHAR(100),
-      value DOUBLE);")
-}
-
-#| This code:
-#|   1) gets a list of CSVs that can be loaded (as per previous code chunk)
-#|   2) establishes a connection to a (new) duckDB database
-#|   3) 
-#| 1) get a list of files to import....
+# This code:
+#   1) gets a list of CSVs that can be loaded (as per previous code chunk)
+#   2) establishes a connection to a (new) duckDB database
+#   3) 
+# 1) get a list of files to import....
 files <- dir(path = csv_path, pattern = "csv$", full.names = T)
-#| NOTE this is written to only push the files collected in this itteraation
-#| I should probably convert them to parquet
-#| and just connect to the folder holding the parquet files?
+# NOTE this is written to only push the files collected in this iteration
+# I should probably convert them to parquet
+# and just connect to the folder holding the parquet files?
+
 all_files = dir(path = csv_path, pattern = "csv$", full.names = T) %>%
   as_tibble() %>% rename(filename = value) %>%
   mutate(archive_date = str_extract(filename, pattern = "[0-9]*-[0-9][0-9]-[0-9][0-9]")) %>%
   mutate(archive_date = lubridate::ymd(archive_date)) %>%
-  arrange(desc(archive_date)) %>%
-  # filter to exclude any dates that are already in the database
-  filter(archive_date > max(all_dates_in_db$dt) )
-files <- all_files$filename
+  arrange(desc(archive_date))
 
+most_recent_date = max(all_dates_in_db$dt)
+if(most_recent_date == -Inf) {
+  most_recent_date = min(all_files$archive_date)
+}
+
+
+new_files <- all_files %>%
+  # filter to exclude any dates that are already in the database
+  filter(archive_date > most_recent_date) %>%
+  arrange((archive_date))
+new_files
+
+filenames <- new_files$filename
+
+if(F) {
+  f <- 'C:/Users/leoki/DATA/EA/archive/readings-2023-01-19.csv'
+  q = sprintf("COPY ea_measurements FROM '%s' ( IGNORE_ERRORS TRUE);", f)
+  dbExecute(con, q)
+  dat = vroom::vroom(f, delim = ",")
+  problems(dat)
+}
 
 message(glue::glue("There are {length(files)} new files to ingest"))
-if(length(files) > 0) {
-  message(glue::glue("Earliest new file date: {min(all_files$dt)}"))
-  message(glue::glue("Latest new file date: {max(all_files$dt)}"))
+if(length(filenames) > 0) {
+  message(glue::glue("Earliest new file date: {min(all_files$archive_date)}"))
+  message(glue::glue("Latest new file date: {max(all_files$archive_date)}"))
   # if you wanted to manually pick-up after gaps caused the GET process to fail
   # manually adjust the start-date because the previous code will not have set
   # if correctly
@@ -119,10 +109,16 @@ if(length(files) > 0) {
   #   18.76    3.54   27.72
   #   1.30    0.32    2.19  # for 5 56Mb files
   print(system.time({
-    for(f in files) {
-      q = sprintf("COPY ea_measurements FROM '%s' ( IGNORE_ERRORS TRUE );", f)
-      dbExecute(con, q)
+    for(f in filenames) {
+      # sprintf("COPY ea_measurements FROM '%s' ( ignore_errors TRUE,  DELIMITER ',', HEADER);", f)
+      #   INSERT INTO ea_measurements SELECT * FROM read_csv(['flights1.csv', 'flights2.csv'], union_by_name = true, filename = true);
+      q = sprintf("INSERT INTO ea_measurements SELECT * FROM read_csv('%s', columns = {'dateTime': 'DATETIME', 'measure': 'VARCHAR', 'value': 'double'}, AUTO_DETECT=TRUE, IGNORE_ERRORS = true);", f)
+      q = sprintf("INSERT INTO ea_measurements SELECT * FROM read_csv('%s', columns = {'dateTime': 'DATETIME', 'measure': 'VARCHAR', 'value': 'double'}, IGNORE_ERRORS = true, parallel=false);", f)
+      print(q)
+     dbExecute(con, q)
     }
+    # "C:/Users/leoki/DATA/EA/archive/readings-2023-01-02.csv"
+    # line 64307 is malformed
   }))
 } else {
   message("NO NEW FILE APPENDED TO DUCKDB")
@@ -131,6 +127,13 @@ if(length(files) > 0) {
 ea_mmt_tbl %>%
   summarise(last_dt = max(dateTime, na.rm = T)) %>%
   collect()
+
+ea_mmt_tbl %>%
+  mutate(date = as.Date(dateTime)) %>%
+  group_by(date) %>%
+  summarise(n_samples = count()) %>%
+  collect() 
+
 
 if(exists("con")) {
   dbDisconnect(con, shutdown=TRUE)

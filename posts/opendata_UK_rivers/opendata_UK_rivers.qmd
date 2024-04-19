@@ -85,9 +85,10 @@ It requires only one line of code to load each layer. As each layer is loaded we
 library(sf)
 library(tidyverse)
 
-os_or_hydro_node <- sf::st_read("C:/Users/leoki/DATA/OS/oprvrs_gpkg_gb/data/oprvrs_gb.gpkg", layer = "HydroNode")
+# since 2023 the names seem to have become snake_case
+os_or_hydro_node <- sf::st_read("C:/Users/leoki/DATA/OS/oprvrs_gpkg_gb/data/oprvrs_gb.gpkg", layer = "hydro_node") %>% rename(geom = geometry) # since 2023 geom was renamed geometry, I'll back-compatible it here
 
-os_or_watercourse_link <- sf::st_read("C:/Users/leoki/DATA/OS/oprvrs_gpkg_gb/data/oprvrs_gb.gpkg", layer = "WatercourseLink")
+os_or_watercourse_link <- sf::st_read("C:/Users/leoki/DATA/OS/oprvrs_gpkg_gb/data/oprvrs_gb.gpkg", layer = "watercourse_link") %>% rename(geom = geometry)# and here
 
 
 ```
@@ -102,10 +103,10 @@ The summary tells us that:
     os_or_hydro_node %>%
       # I dont need to convert to a tibble but it's faster if I do
       as_tibble() %>%
-      count(hydroNodeCategory, sort = T)
+      count(hydro_node_category, sort = T)
     ```
 
--   **os_or_watercourse_link**: The links represent segments of the rivers themselves. There are 190,069 links, each one includes a range of information about the section of river. A sample of the links is shown below. Each of the 9 plots of the rivers in Great Britain is a field in the links dataset, only entries that are not blank are plotted on the maps. Notice that the watercourseNameAlternative is only sparsely populated. I will dig a bit deeper into the contents of each field in the next section.
+-   **os_or_watercourse_link**: The links represent segments of the rivers themselves. There are 190,069 links, each one includes a range of information about the section of river. A sample of the links is shown below. Each of the 9 plots of the rivers in Great Britain is a field in the links dataset, only entries that are not blank are plotted on the maps. Notice that the watercourse_name_alternative is only sparsely populated. I will dig a bit deeper into the contents of each field in the next section.
 
     ```{r explore the OS open-river dataset links}
       os_or_watercourse_link %>%
@@ -141,14 +142,14 @@ os_or_watercourse_link %>%
   count(form, sort = T)
 ```
 
--   The *watercourseName* column contains a categorical classification for each node. Attributes like this can be described as having "normal cardinality"[^8]:
+-   The *watercourse_name* column contains a categorical classification for each node. Attributes like this can be described as having "normal cardinality"[^8]:
 
 [^8]: "Normal cardinality is vaguely defined as somewhere between low and high cardinality). In the wild, the various entries might contain different ways of describing the same thing or typos, and data cleansing steps can be used to remove the ambiguities by reclassifying towards a less ambiguous classes. Regardless of the reasons for"normal cardinality" it's often useful to reduce the cardinality by lumping rare / exotic categorizations together using one of the extremely useful family of fct_lump\_\* functions from the forcats package.
 
 ```{r label: check low cardinality fields}
 os_or_watercourse_link %>%
   as_tibble() %>%
-  count(watercourseName, watercourseNameAlternative, sort = T)
+  count(watercourse_name, watercourse_name_alternative, sort = T)
 ```
 
 It is a little worrying that there are many links that have not been assigned either a *name* or an *alternativeName*. (shown as "\<NA\>" in the table shown above). I will have to explore some more to understand what's going on here.
@@ -177,8 +178,8 @@ The plot below shows that the River Thames (as selected using the name attribute
     st_as_sfc()
   
 os_or_watercourse_link %>%
-  filter(str_detect(str_to_lower(watercourseName), target_river)
-         | str_detect(str_to_lower(watercourseNameAlternative), target_river)) %>%
+  filter(str_detect(str_to_lower(watercourse_name), target_river)
+         | str_detect(str_to_lower(watercourse_name_alternative), target_river)) %>%
   ggplot() +
   geom_sf(aes(colour = form)) +
   geom_sf(data = bbox_thames,
@@ -193,8 +194,8 @@ This kind of exploratory Data Analysis (EDA) is probably best done in GIS softwa
 ```{r explore central London, warning=FALSE, message=FALSE}
   
 os_or_watercourse_link %>%
-  mutate(namedRiverThames = ifelse(coalesce(str_detect(str_to_lower(watercourseName), target_river)
-         | str_detect(str_to_lower(watercourseNameAlternative), target_river), FALSE), "Thames", "Not Thames")) %>%
+  mutate(namedRiverThames = ifelse(coalesce(str_detect(str_to_lower(watercourse_name), target_river)
+         | str_detect(str_to_lower(watercourse_name_alternative), target_river), FALSE), "Thames", "Not Thames")) %>%
   st_transform(crs = st_crs(4326)) %>%
   st_filter(bbox_thames) %>%
   mutate(geom = st_make_valid(geom)) %>%
@@ -203,8 +204,8 @@ leaflet() %>%
   addPolygons(data = bbox_thames) %>%
   addPolylines(
         group = ~namedRiverThames,
-    label = ~paste0(watercourseName, ' - ',
-                           watercourseNameAlternative)
+    label = ~paste0(watercourse_name, ' - ',
+                           watercourse_name_alternative)
   ) %>% 
   addLayersControl(
       overlayGroups = c("Thames", "Not Thames"),
@@ -216,7 +217,7 @@ leaflet() %>%
 
 Not to worry! Later in this post we will see there are ways to handle these gaps and find our way from source to outlet of the River Thames regardless (assuming some other aspects of the dataset are good enough). To do this I will be exploring two other properties of the datasets
 
--   The nodes have that *hydroNodeCategory* classification (source, outlet, junction etc.)
+-   The nodes have that *hydro_node_category* classification (source, outlet, junction etc.)
 
 -   The links have a *fromNode* and a *ToNode* which allow them to be connected. I'll be using the connectivity of the river sections to allow me to navigate along rivers like the Thames regardless of the sections being fully labelled.
 
@@ -226,7 +227,7 @@ There's a lot of hype about *digital twins* at the moment, and I want to say tha
 
 ## Just what *is* a digital twin?
 
-One definition is that digital twins are digital representations of an object or system that accurately reflects aspects of the system's behaviour. So what's the difference between a *digital twin* and what was once called a *simulation* or a *model*? A key characteristic is that a digital twin is associated (twinned) with an object that actually exists (a model / simulation can be of something that does not exist). It might be useful here to compare a flight-simulator against the internal models of a fly-by-wire aircraft. Both need to digitally represent the flight characteristics of an aircraft, but only one is linked to a *real* aircraft. Because *digital twins* always have a *real twin*, they have an extra requirement to represent some aspect of that object well enough to be used to generate insight about the *real* version. If the *real* object can have different states, then the *digital twin* will need to reflect those states, which in turn often requires information on the *real twin* to be gathered from sensors.
+One definition is that digital twins are digital representations of an object or system that accurately reflects aspects of the system's behavior. So what's the difference between a *digital twin* and what was once called a *simulation* or a *model*? A key characteristic is that a digital twin is associated (twinned) with an object that actually exists (a model / simulation can be of something that does not exist). It might be useful here to compare a flight-simulator against the internal models of a fly-by-wire aircraft. Both need to digitally represent the flight characteristics of an aircraft, but only one is linked to a *real* aircraft. Because *digital twins* always have a *real twin*, they have an extra requirement to represent some aspect of that object well enough to be used to generate insight about the *real* version. If the *real* object can have different states, then the *digital twin* will need to reflect those states, which in turn often requires information on the *real twin* to be gathered from sensors.
 
 ## Am I really creating a *digital twin* here?
 
@@ -246,59 +247,59 @@ First I create *sfnetwork* object which has all these amazing capabilities:
 
 ```{r creating a sfnetwork that can be explored }
 # 
-#| we're going up a gear... use sfnetworks to do both
-#| geospatial analysis (sf for geospatial manipulation)
-#|  like slipping and linking other spatial datasets)
-#| and network analysis (igraph for network type analysis)
-#|  like splitting the river network up into river systems
-#|  or tracing along sections of rivers from point to point
+# we're going up a gear... use sfnetworks to do both
+# geospatial analysis (sf for geospatial manipulation)
+#  like slipping and linking other spatial datasets)
+# and network analysis (igraph for network type analysis)
+#  like splitting the river network up into river systems
+#  or tracing along sections of rivers from point to point
 library(sfnetworks)
 # create a sf network for the whole of the UK ----
 # (takes a few seconds on my laptoi)
 sfnet_rivers <- as_sfnetwork(os_or_watercourse_link)
-#| note: the package can create networks from the nodes and links.
-#| like this: (IF(F) so it DOES NOT RUN)
+# note: the package can create networks from the nodes and links.
+#  like this: (IF(F) so it DOES NOT RUN)
 if(F) {
   # do not run! while this is how the documetation says to do it
   # it gobbles up all my laptp memory
   sfnet_rivers <- sfnetwork(nodes = os_or_hydro_node,
                             edges = os_or_watercourse_link %>%
-                              rename(from = startNode, to = endNode),
+                              rename(from = start_node, to = end_node),
                             node_key = "id")
 }
-#| Including the nodes and the links will embue the sfnetwork
-#| with attributes of both the nodes and the links
-#| This is something 8 really want..
-#| HOWEVER,  for some reason this chews up all the memory
-#| on my laptop before crashing.
+# Including the nodes and the links will embue the sfnetwork
+#  with attributes of both the nodes and the links
+#  This is something 8 really want..
+# HOWEVER,  for some reason this chews up all the memory
+# on my laptop before crashing.
 ```
 
 Then I make sure that all the attributes of the OS datasets are carried over (I use SQL-like joins but there are a surely many ways to implement this step)
 
 ```{r augment the newly created sfnetwork with node attributes, warning=FALSE, message=FALSE}
 
-  #| ...then... adding some info back onto the nodes by:
-  #| get the original IDs for the nodes from the link start/ends
-  #| so that we can then link in the information from the os_or_hydro_node
+  # ...then... adding some info back onto the nodes by:
+  # get the original IDs for the nodes from the link start/ends
+  # so that we can then link in the information from the os_or_hydro_node
   sfnet_rivers <- sfnet_rivers %>%
     # here
     activate(links) %>%
-    # look up the hydroNodeCategory of the startNode
+    # look up the hydro_node_category of the start_node
     left_join(os_or_hydro_node %>% as_tibble() %>% as_tibble() %>% select(-geom) %>%
-                rename(startNode = id, start_cat = hydroNodeCategory)) %>%
-    # look up the hydroNodeCategory of the endNode
+                rename(start_node = id, start_cat = hydro_node_category)) %>%
+    # look up the hydro_node_category of the end_node
     left_join(os_or_hydro_node %>% as_tibble() %>% as_tibble() %>% select(-geom) %>%
-                rename(endNode = id, end_cat = hydroNodeCategory)) %>%
+                rename(end_node = id, end_cat = hydro_node_category)) %>%
     # here
     activate(nodes) %>%
-    # reunite the nodes with the startNode & endNode ids
-    # look up the startNode of links connected FROM it
+    # reunite the nodes with the start_node & end_node ids
+    # look up the start_node of links connected FROM it
     mutate(id = row_number()) %>%
     left_join(sfnet_rivers %>%
                 activate(links) %>%
                 as_tibble() %>%
-                transmute(id = from, startNode) %>% # FROM
-#                transmute(id = from, startNode, start_watercourse = coalesce(watercourseName, watercourseNameAlternative)) %>% # FROM
+                transmute(id = from, start_node) %>% # FROM
+#                transmute(id = from, start_node, start_watercourse = coalesce(watercourse_name, watercourse_name_alternative)) %>% # FROM
                 as_tibble() %>%
                 select(-geom) %>%
                 distinct()
@@ -307,8 +308,8 @@ Then I make sure that all the attributes of the OS datasets are carried over (I 
     left_join(sfnet_rivers %>%
                 activate(links) %>%
                 as_tibble() %>%
-                transmute(id = to, endNode) %>% # TO
-                #                transmute(id = to, endNode, end_watercourse = coalesce(watercourseName, watercourseNameAlternative)) %>% # TO
+                transmute(id = to, end_node) %>% # TO
+                #                transmute(id = to, end_node, end_watercourse = coalesce(watercourse_name, watercourse_name_alternative)) %>% # TO
                 as_tibble() %>%
                 select(-geom) %>%
                 distinct()
@@ -316,8 +317,8 @@ Then I make sure that all the attributes of the OS datasets are carried over (I 
     # both TO & FROM should hold the same chr ID
     # sometimes one or the other will be blank (at the ends of the network)
     # so lets collapse the IDs from either by coalescing
-    mutate(node_id = coalesce(startNode, endNode)) %>%
-    rename(startNodeFromLinks = startNode, endNodeFromLinks = endNode) %>%
+    mutate(node_id = coalesce(start_node, end_node)) %>%
+    rename(start_nodeFromLinks = start_node, end_nodeFromLinks = end_node) %>%
     left_join(os_or_hydro_node %>% as_tibble() %>% as_tibble() %>% select(-geom),
               by = c("node_id" = "id"))
 
@@ -339,15 +340,15 @@ The OS data is now in a form that is both a map *and* a network. I can do some r
 
 ```{r define a start and end point somewhere on the Thames, warning=FALSE, message=FALSE}
 
-#| note: I'm going to find points on rivers more than once
-#| in this post, so in the spirit of DRY....
-#| I'll encapsulate the logic in a function
-#| INPUTS:
-#|   sfnetwork - the network to be searched
-#|   river_name - a river to filter on (case insensitive)
-#|   node_category - and hydroNodeCategory (case insensitive)
-#| RETURNS:
-#|   a dataframe containing the nodes matching the filters
+# note: I'm going to find points on rivers more than once
+# in this post, so in the spirit of DRY....
+# I'll encapsulate the logic in a function
+# INPUTS:
+#   sfnetwork - the network to be searched
+#   river_name - a river to filter on (case insensitive)
+#   node_category - and hydro_node_category (case insensitive)
+# RETURNS:
+#   a dataframe containing the nodes matching the filters
 find_all_nodes <- function(sf_net, river_name, node_category){
   if(!hasArg(river_name)) {
     warning("find_all_nodes: river_name not defined (returning NULL)")
@@ -362,7 +363,7 @@ find_all_nodes <- function(sf_net, river_name, node_category){
     activate(nodes) %>%
     mutate(id = row_number()) %>%
     as_tibble() %>% as_tibble() %>%
-    filter(hydroNodeCategory == str_to_lower(node_category))
+    filter(hydro_node_category == str_to_lower(node_category))
   
   # step 2: filter rivers to the target river_name
   if(str_to_lower(node_category) == "source") {
@@ -371,12 +372,12 @@ find_all_nodes <- function(sf_net, river_name, node_category){
       sf_net %>%
         activate(links) %>%
         as_tibble() %>% as_tibble() %>%
-        filter(str_detect(str_to_lower(watercourseName),
+        filter(str_detect(str_to_lower(watercourse_name),
                           str_to_lower(river_name))
              |
-               str_detect(str_to_lower(watercourseNameAlternative),
+               str_detect(str_to_lower(watercourse_name_alternative),
                           str_to_lower(river_name))) %>%
-        select(node_id = startNode)
+        select(node_id = start_node)
     ) 
   } else {
     river_nodes <- river_nodes %>%
@@ -384,12 +385,12 @@ find_all_nodes <- function(sf_net, river_name, node_category){
         sf_net %>%
           activate(links) %>%
           as_tibble() %>% as_tibble() %>%
-          filter(str_detect(str_to_lower(watercourseName),
+          filter(str_detect(str_to_lower(watercourse_name),
                             str_to_lower(river_name))
                |
-                 str_detect(str_to_lower(watercourseNameAlternative),
+                 str_detect(str_to_lower(watercourse_name_alternative),
                             str_to_lower(river_name))) %>%
-          select(node_id = endNode)
+          select(node_id = end_node)
       )
     return(river_nodes)
   }
@@ -405,8 +406,8 @@ river_outlet_node <- find_all_nodes(sf_net = sfnet_rivers,
   st_as_sf(crs = st_crs(27700)) %>%
   mutate(lon = sf::st_coordinates(.)[,1],
          lat = sf::st_coordinates(.)[,2]) %>%
-  #| then arrange the rows east -> west
-  #| (longitude is smallest in the west so this is descending)
+  # then arrange the rows east -> west
+  # (longitude is smallest in the west so this is descending)
   arrange(desc(lon)) %>%
   # select the (single) easternmost node
   slice(1)
@@ -418,23 +419,23 @@ westernmost_target_node <- find_all_nodes(sf_net = sfnet_rivers,
   st_as_sf(crs = st_crs(27700)) %>%
   mutate(lon = sf::st_coordinates(.)[,1],
          lat = sf::st_coordinates(.)[,2]) %>%
-  #| then arrange the rows west -> east
-  #| (longitude is smallest in the west)
-  #| and somewhere later on, I'll pick the first (most westerly)
-  #| source.
-  #| I could have included all sources then in the route-planning
-  #| and then chosen the one that had the longest path
+  # then arrange the rows west -> east
+  # (longitude is smallest in the west)
+  # and somewhere later on, I'll pick the first (most westerly)
+  # source.
+  # I could have included all sources then in the route-planning
+  # and then chosen the one that had the longest path
   arrange(lon) %>%
   # select the (single) westernmost node
   slice(1)
 
 ```
 
-Then we can trace from the start to the end, picking up all links inbetween. The route we're about to generate is similar to that taken by the three men and a dog in Jerome K. Jerome's book [Three Men In a Boat](https://en.wikipedia.org/wiki/Three_Men_in_a_Boat))
+Then we can trace from the start to the end, picking up all links in-between. The route we're about to generate is similar to that taken by the three men and a dog in Jerome K. Jerome's book [Three Men In a Boat](https://en.wikipedia.org/wiki/Three_Men_in_a_Boat))
 
 ```{r finding the path from start to finish of the Thames}
 # this just gets the path to the outlet
-paths_downstream_target <- st_network_paths(sfnet_rivers,
+paths_downstream_target <- sfnetworks::st_network_paths(sfnet_rivers,
                           from = westernmost_target_node$id,
                           to = river_outlet_node$id,
                           weights = "length") %>%
@@ -444,8 +445,8 @@ paths_downstream_target <- st_network_paths(sfnet_rivers,
 
 sfnet_rivers %>%
     activate("nodes") %>%
-  #| probably should use sfnetwork spatial morphers
-  #| https://luukvdmeer.github.io/sfnetworks/articles/sfn05_morphers.html
+  # probably should use sfnetwork spatial morphers
+  # https://luukvdmeer.github.io/sfnetworks/articles/sfn05_morphers.html
     slice(unique(unlist(paths_downstream_target$node_paths))) %>%
     activate(links) %>%
     st_transform(crs = st_crs(4326)) %>%
@@ -457,8 +458,8 @@ sfnet_rivers %>%
     addTiles(group = "OSM (default)") %>%
     addProviderTiles(providers$Stamen.Terrain, group = "Terrain") %>%
     addPolylines(
-      label = ~paste0(watercourseName, ' - ',
-                      watercourseNameAlternative)
+      label = ~paste0(watercourse_name, ' - ',
+                      watercourse_name_alternative)
     ) %>% 
     addLayersControl(
       baseGroups = c("OSM (default)", "Terrain"),
@@ -466,7 +467,7 @@ sfnet_rivers %>%
     )
 ```
 
-*Aside:* Remember how much trouble there was finding all the parts of the River Thames based on the *watercourseName* attribute because some of the river segments had not been labelled? The route-finding way has collected all the parts of the river between the source(s) and the outlet. If one wished, one could then apply some (carefully validated) domain rules to assert that all the links between should be called "River Thames" and cleans the *watercourseName* to be more complete, infilling those blanks with something more sensible. (I'm not going to do this here).
+*Aside:* Remember how much trouble there was finding all the parts of the River Thames based on the *watercourse_name* attribute because some of the river segments had not been labelled? The route-finding way has collected all the parts of the river between the source(s) and the outlet. If one wished, one could then apply some (carefully validated) domain rules to assert that all the links between should be called "River Thames" and cleans the *watercourse_name* to be more complete, infilling those blanks with something more sensible. (I'm not going to do this here).
 
 ## Remember rivers have a sense of direction...
 
@@ -520,8 +521,8 @@ sfnet_rivers %>%
     addTiles(group = "OSM (default)") %>%
     addProviderTiles(providers$Stamen.Terrain, group = "Terrain") %>%
     addPolylines(
-      label = ~paste0(watercourseName, ' - ',
-                      watercourseNameAlternative)
+      label = ~paste0(watercourse_name, ' - ',
+                      watercourse_name_alternative)
     ) %>% 
     addLayersControl(
       baseGroups = c("OSM (default)", "Terrain"),
@@ -544,16 +545,16 @@ thames_kennet_subgraph <- sfnet_rivers %>%
   # if we wanted to simplifyto remove nodes that have only one incoming and one outgoing edge. 
   # https://luukvdmeer.github.io/sfnetworks/articles/sfn02_preprocess_clean.html#smooth-pseudo-nodes
   # tidygraph::convert(to_spatial_smooth) %>%
-  mutate(watercourseName = coalesce(watercourseName, "Not Defined")) %>%
-  mutate(watercourseName = as_factor(watercourseName)) %>%
-  mutate(watercourseName = fct_lump_n(watercourseName, 3)) %>%
+  mutate(watercourse_name = coalesce(watercourse_name, "Not Defined")) %>%
+  mutate(watercourse_name = as_factor(watercourse_name)) %>%
+  mutate(watercourse_name = fct_lump_n(watercourse_name, 3)) %>%
   as.igraph()
 
   thames_kennet_subgraph %>%
   ggraph() +
 #    ggraph(layout = "dendrogram") +
   geom_node_point(size = 1) +
-  geom_edge_link(aes(colour = watercourseName), arrow = arrow(length = unit(2, 'mm'), ends = "last"),
+  geom_edge_link(aes(colour = watercourse_name), arrow = arrow(length = unit(2, 'mm'), ends = "last"),
                  end_cap = circle(2, 'mm'),
                  start_cap = circle(2, 'mm')) +
     theme_graph() +
@@ -589,7 +590,7 @@ Once complete, we would have defined all sub-networks of the main OS open-rivers
 ```{r add river systems (rg) to the sfnetwork, warning=FALSE, message=FALSE}
 # Step 1: calculate the components
 # mark each of the sub-graphs with a unique ID
-#| this ID is arbitrary but each river network has it's own ID
+# this ID is arbitrary but each river network has it's own ID
 rg <- igraph::components(sfnet_rivers)
 
 # Step 2: add the groups to the nodes
@@ -610,7 +611,7 @@ sfnet_rivers_grouped <- sfnet_rivers_grouped %>%
       activate(nodes) %>%
       as_tibble() %>%
       as_tibble() %>%
-      transmute(endNode = node_id, rg, n_nodes)
+      transmute(end_node = node_id, rg, n_nodes)
   )
 
 # I dont need sfnet_rivers now.  if I deleted it here
@@ -628,8 +629,8 @@ Let's explore what has been generated by filtering the whole of the UK to the ri
 
 ```{r load the water company boundaries, warning=FALSE, message=FALSE}
 
-#| Stack exchange once again makes it easy to make reproducible code
-#| https://stackoverflow.com/questions/64850643/why-cant-i-get-st-read-to-open-a-shapefile-from-a-compressed-file-map-is-read
+# Stack exchange once again makes it easy to make reproducible code
+# https://stackoverflow.com/questions/64850643/why-cant-i-get-st-read-to-open-a-shapefile-from-a-compressed-file-map-is-read
 
 read_shape_URL <- function(URL){
   cur_tempfile <- tempfile()
@@ -682,8 +683,8 @@ concave_rivers_boundary_sf <- sfnet_rivers_thames_basin %>%
 
 #Step 4: plot them all on top of eachother
 
-#| https://community.rstudio.com/t/adding-manual-legend-to-ggplot2/41651/3
-#| to label the layers
+# https://community.rstudio.com/t/adding-manual-legend-to-ggplot2/41651/3
+# to label the layers
 colors <- c("Thames tributaries" = "darkgrey",
             "TW Region" = "green",
             "Concave Rivers boundary" = "blue"
@@ -733,8 +734,8 @@ leaflet() %>%
   addPolygons(data = bbox_zoom, color = "red") %>%
   addPolylines(
         group = ~namedRiverThames,
-    label = ~paste0(watercourseName, ' - ',
-                           watercourseNameAlternative)
+    label = ~paste0(watercourse_name, ' - ',
+                           watercourse_name_alternative)
   ) %>%
   addLayersControl(
       overlayGroups = c("Thames System", "Not Thames System"),
@@ -768,13 +769,13 @@ tw_p <- sfnet_rivers_grouped %>%
     filter(str_detect(COMPANY, "Thames")) %>%
     st_simplify(dTolerance = 100)) %>%
   # calculate the length of entire river (as I want to emphasis *all* links on longer rivers)
-  group_by(watercourseName) %>%
+  group_by(watercourse_name) %>%
   mutate(river_length = sum(length)) %>%
   ungroup() %>%
   mutate(all_length = sum(length)) %>%
   mutate(norm_length = river_length / all_length) %>%
-  mutate(norm_length = ifelse(is.na(watercourseName), 0.01, norm_length)) %>%
-  select(watercourseName, rg, length, river_length, norm_length, all_length) %>%
+  mutate(norm_length = ifelse(is.na(watercourse_name), 0.01, norm_length)) %>%
+  select(watercourse_name, rg, length, river_length, norm_length, all_length) %>%
   ggplot() +
     geom_sf(aes(colour = rg, alpha = norm_length)) +
     hrbrthemes::theme_ft_rc(grid = F,axis_text_size = F) +
@@ -846,37 +847,37 @@ The code is shown in the code section below.
 
 get_missing_links <- function(net = NULL, from_category = "source", to_category = "outlet", bridging_dist = 100, match_name = T) {
   
-  #| I'm going to search
-  #|   from *all* nodes of type "from_category" (outlets)
-  #|   to *all nodes of type "to_category" (sources)
-  #|   that are close enough (defined by bridging_distance)
-  #| I have an optional extra requirement that
-  #|   the names of the from & to nodes match
-  #| In english...
-  #| "IF there's a river source *really close* to a river source
-  #| THEN it's possible that they should be connected
-  #| (occam's razor: it's easier to explain why the end of one river is near the start of another through a "missing link" that to think of a legitimate condition where one river stops and another river starts nearby)
-  #| ESPECIALLY IF they're both the SAME RIVER NAME 
+  # I'm going to search
+  #   from *all* nodes of type "from_category" (outlets)
+  #   to *all nodes of type "to_category" (sources)
+  #   that are close enough (defined by bridging_distance)
+  # I have an optional extra requirement that
+  #   the names of the from & to nodes match
+  # In english...
+  # "IF there's a river source *really close* to a river source
+  # THEN it's possible that they should be connected
+  # (occam's razor: it's easier to explain why the end of one river is near the start of another through a "missing link" that to think of a legitimate condition where one river stops and another river starts nearby)
+  # ESPECIALLY IF they're both the SAME RIVER NAME 
   all_start_nodes <- sfnet_rivers_grouped %>%
     activate(nodes) %>%
     st_as_sf() %>%
-    filter(hydroNodeCategory %in% from_category) %>%
+    filter(hydro_node_category %in% from_category) %>%
     left_join(
       sfnet_rivers_grouped %>%
         activate(links) %>%
         as_tibble() %>% as_tibble() %>%
-        select(id = from, watercourseName)
+        select(id = from, watercourse_name)
     )
   
   all_end_nodes <- sfnet_rivers_grouped %>%
     activate(nodes) %>%
     st_as_sf() %>%
-    filter(hydroNodeCategory %in% to_category) %>%
+    filter(hydro_node_category %in% to_category) %>%
     left_join(
       sfnet_rivers_grouped %>%
         activate(links) %>%
         as_tibble() %>% as_tibble() %>%
-        select(id = to, watercourseName)
+        select(id = to, watercourse_name)
     )
   
   # *all* links between outlets and sources
@@ -891,12 +892,12 @@ get_missing_links <- function(net = NULL, from_category = "source", to_category 
   
   if(match_name) {
     from_to <- from_to %>%
-      filter(watercourseName_start == watercourseName_end)
+      filter(watercourse_name_start == watercourse_name_end)
   }
   
   # https://stackoverflow.com/questions/49853696/distances-of-points-between-rows-with-sf
   pos_link_start_ends <- from_to %>%
-    transmute(watercourseName = coalesce(watercourseName_start, watercourseName_end),
+    transmute(watercourse_name = coalesce(watercourse_name_start, watercourse_name_end),
               id_start, geom_start, id_end) %>%
     left_join(all_start_nodes %>% as_tibble() %>% transmute(id_end = id, geom_end = geom)) %>%
     mutate(
@@ -911,7 +912,7 @@ get_missing_links <- function(net = NULL, from_category = "source", to_category 
     mutate(id = row_number(), .before = 1) %>%
     pivot_longer(cols = c(geom_start, geom_end), names_to = "pos",  values_to = "geom") %>%
     st_as_sf() %>%
-    group_by(id, id_start, id_end, watercourseName, length) %>%
+    group_by(id, id_start, id_end, watercourse_name, length) %>%
     summarise(do_union = FALSE) %>%
     ungroup() %>%
     st_cast("LINESTRING") %>%
@@ -920,7 +921,7 @@ get_missing_links <- function(net = NULL, from_category = "source", to_category 
       to = id_end,
       length = length,
       form = "",
-      watercourseName = watercourseName,
+      watercourse_name = watercourse_name,
       start_cat = "",
       end_cat = "",
       rg = as_factor(1),
@@ -933,7 +934,7 @@ get_missing_links <- function(net = NULL, from_category = "source", to_category 
       to,
       length,
       form,
-      watercourseName,
+      watercourse_name,
       geom,
       start_cat,
       end_cat,
@@ -967,7 +968,7 @@ sfnet_rivers_grouped <- sfnet_rivers_grouped %>%
   st_zm() 
   
 bridging_dist <- 75
-#| 1) get potential missing links
+# 1) get potential missing links
 missing_links <- get_missing_links(sfnet_rivers_grouped,
                                    from = "source",
                                    to = "outlet",
@@ -1026,7 +1027,7 @@ leaflet() %>%
                  st_as_sf() %>%
                  st_filter(bboxes_name_not_matched),
                weight = 10,
-               label = ~paste0("River: ", watercourseName)) %>%
+               label = ~paste0("River: ", watercourse_name)) %>%
   # the new links
   addPolylines(data = missing_links,
                weight = 7,
@@ -1080,12 +1081,12 @@ leaflet() %>%
                  st_as_sf() %>%
                  st_filter(bboxes_name_not_matched),
                weight = 10,
-               label = ~paste0("River: ", watercourseName)) %>%
+               label = ~paste0("River: ", watercourse_name)) %>%
   # the new links
   addPolylines(data = missing_links,
                weight = 7,
                color = "orange",
-               label = ~paste0("River: ", watercourseName, " length: ", length))
+               label = ~paste0("River: ", watercourse_name, " length: ", length))
 
 ```
 
