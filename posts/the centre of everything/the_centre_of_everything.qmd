@@ -15,7 +15,48 @@ library(tidyverse)
 library(sf)
 ```
 
-It's a grand title, but this post explores mapping a little with the theme of visualizing the 'centre' of every country in the world. I'll be standing on the shoulders of [Drawing beautiful maps programmatically with R, sf and ggplot2 --- Part 1: Basics (r-spatial.org)](https://r-spatial.org/r/2018/10/25/ggplot2-sf.html) to get off the ground...
+It's a grand title, but this post explores geospatial mapping with the theme of visualizing the 'centre' of every country in the world. I'll be standing on the shoulders of [Drawing beautiful maps programmatically with R, sf and ggplot2 --- Part 1: Basics (r-spatial.org)](https://r-spatial.org/r/2018/10/25/ggplot2-sf.html) to get off the ground...
+
+The blog includes *how* I've found the centre of everything,  but the result of this blog might be useful for pub-quizzers everywhere.  If you're more interested exploring the world the you can just go to the follwoing sections:
+
+-   Q: Where is the centre of every country/landmass? (see @sec-centres)
+
+-   Q: What countries borders the most other countries? (see @sec-touches-country)
+
+-   Q: What's the roundest landmass on earth? (see @sec-roundest-country)
+
+
+In this blog I'll be doing the following:
+
+-   Downloading (@sec-download) some data that I can use to plot maps
+
+-   Exploring (@sec-explore) the data so I better understand what it contains.
+
+-   Trying (and failing) to plot (what I though were) countries (@sec-ggplot and @sec-leaflet)
+
+-   which leads me to data manipulation @sec-munge **dplyr** to to the usual filtering/editing and **sf** to do some geo-spatial manipulation (defining projections & getting at landmasses)
+
+-   Finally, exploring landmasses
+
+    -   Can we find the centre of everything? (yes)
+
+    -   and hyperspace (hyperlink) to google-maps to see what's there? (yes)
+
+-   ... and do some "fun" stuff like (feel free to use in your next pub-quiz)
+
+    -   Q: What countries borders the most other countries? (see @sec-touches-country)
+
+    -   Q: What's the roundest landmass on earth? (see @sec-roundest-country)
+
+I'll be generating interactive plots, so even if you're not interested in *how* I've done these things you can still have fun plaing with the results.
+
+# Explore the world
+
+Here's something I've always wanted to do... Explore the world! BI tools like Tableau and powerBI etc. R has a few good interactive apps.
+
+## Load the data I'm going to map
+
+I'm going to be plotting a map of the world that is made available in the {rnaturalearth} package but the process I'll be going through will work for all-sorts of spatial data from shapefiles to geopackages.
 
 ```{r label: load map libraries and world dataset, output = FALSE, warning = FALSE}
 
@@ -24,9 +65,13 @@ world <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf") %>%
 
 ```
 
-# Explore the world
+## Getting to know the data I'll be plotting... {#sec-download}
 
-Here's something I've always wanted to do... Explore the world! BI tools like Tableau and powerBI etc. R has a few good interactive apps. My favourites include explore::explore() and esquisse::esquisser(). I cant show you interactive plots in this post, but they are a great intuitive way to get to know your data. Trust me, the first things to note is that the dataset has a *lot* of fields. I've selected records marked as having French soverinty in the table below. For this post I'm only going to use the ones associated with the names of the countries.
+My favorites include explore::explore() and esquisse::esquisser(). I cant show you interactive plots in this post, but they are a great intuitive way to get to know your data. Trust me, the first things to note is that the dataset has a *lot* of fields.
+
+## Tabulating the data-frame holding the world-maps {#sec-explore}
+
+I've selected records marked as having French sovereignty in the table below. For this post I'm only going to use the ones associated with the names of the countries.
 
 ```{r label: explore the world}
 
@@ -69,7 +114,9 @@ world %>%
   htmltools::div(style = "font-size: 75%")
 ```
 
-There are lots of ways visualise maps. I start with {ggplot2}
+## Plotting a map using ggplot {#sec-ggplot}
+
+There are lots of ways visualise maps. I start with {ggplot2}. The example below isn't particularly impressive, but if you know (and love ggplot) then you'll know that once you;ve got that geom_sf() plots geometries, then the rest of the grammar of graphics is there for you to tune using aesthetics like colour, weight, alpha etc and titles, labels, facets etc.
 
 ```{r label: plot the world using ggplot, message = FALSE, warning = FALSE}
 library(ggplot2)
@@ -78,12 +125,13 @@ ggplot() +
   geom_sf(data = world %>% mutate(geometry = sf::st_centroid(sf::st_make_valid(geometry))))
 ```
 
-I like the leaflet package for interactive maps. Here's that map again, this time focussing on French parts
+## Interactive maps using leaflet {#sec-leaflet}
+
+I like the [leaflet](https://rstudio.github.io/leaflet/) package for interactive maps. Here's that map again, this time focusing on French parts
 
 ```{r label: useful function makeHTML, message = FALSE, warning = FALSE }
 # credit to people like:
 # https://rdrr.io/github/dkneis/diatools/src/R/makeHTML.r
-library(sf)
 makeHTML <- function(htmlText){
   attr(htmlText, "html") <- TRUE
   class(htmlText) <- c("html", "character")
@@ -96,7 +144,7 @@ buildGoogleMapsURLFromLatLong <- function(myLati, myLongi) {
                    gsub(" ", "", format(round(myLati, 8), nsmall = 8)),
                    ",", 
                    gsub(" ", "", format(round(myLongi, 8), nsmall = 8)), 
-                   ',19z" .external target="_blank" rel = "noopener noreferrer nofollow" >',
+                   ',8z" .external target="_blank" rel = "noopener noreferrer nofollow" >',
                    'Show in Googlemaps</a>')
 }
 
@@ -138,7 +186,7 @@ world_map <- leaflet() %>%
 world_map
 ```
 
-Notice that some of the markers apparently showing the centre of places under French sovereignty are in strange places. There's one point in the north of Spain. This is because some records (individual rows) actually contain polygons for more than one distinct place. What I have inadverterntily done is to find the centre of a number of polygons covering all the land registered with a country. For illustration: Notice when we filter name = "France" we something called a "multipolygon".
+Notice that some of the markers apparently showing the centre of places under French sovereignty are in strange places. There's one point in the north of Spain. This is because some records (individual rows) actually contain polygons for more than one distinct place. What I have inadvertently done is to find the centre of a number of polygons covering all the land registered with a country. For illustration: Notice when we filter name = "France" we something called a "multipolygon".
 
 ```{r label: investigate France as a single row, message = FALSE, warning = FALSE}
 world %>%
@@ -148,11 +196,15 @@ world %>%
 
 ```
 
-What I'd wanted was to find the centre of each landmass.
+What I'd wanted was to find the centre of each landmass. I'm going to have to do some manipulation to separate the groups of land-masses into individual entities...
 
-## Unnesting multipoligons into many separate polygons
+## Splitting sovreign regions into landmasses {#sec-munge}
 
-we can expand the "multipolygon" into a number of individual polygons (=landmasses) by casting to polygon as shown below:
+I nearly called this section "Unnesting multi-polygons into many separate polygons" but when re-reading, perhaps that's a bit of a technical title that presumes people know the difference between polygons (=shapes) and multi-polygons (collections of shapes).
+
+## using the {sf} to do spatial transforms (sound complicated, but it's not really)
+
+we can expand the "multipolygon" into a number of individual polygons (=landmasses) by **cast**ing to polygon as shown below:
 
 ```{r label: expand the frence multipolygon into individual polygons, message = FALSE, warning = FALSE}
 world %>%
@@ -165,7 +217,7 @@ world %>%
 
 ```
 
-From here on in I want to work with separate landmasses. So I will create a useful dataframe. While I'm at it, I will re-cast the geometry into lat-long (CRS = 4326) so that plotting it in leaflet flows more smoothly. I'm also going to calculate the area of each landmass and keep track of the fact that some polygon have the same name but they'tre acrually different sub-records that have been un-nested from one bigger one:
+From here on in I want to work with separate landmasses. So I will create a useful dataframe. While I'm at it, I will re-cast the geometry into lat-long (CRS = 4326) so that plotting it in leaflet flows more smoothly. I'm also going to calculate the area of each landmass and keep track of the fact that some polygon have the same name but they're actually different sub-records that have been un-nested from one bigger one:
 
 ```{r label: create a useful dataframe for the whole world, warning=FALSE, message=FALSE}
 # get the entire world as a number of individual polygons
@@ -183,6 +235,8 @@ world_landmasses <- world %>%
   ungroup() %>%
   mutate(name = str_c(name, "-", poly_id, "/", one_of))
 ```
+
+## The centre(oid) of everything {#sec-centres}
 
 ```{r label: use leaflet to find the centre of everything, message = FALSE, warning = FALSE}
 
@@ -228,9 +282,9 @@ world_landmasses %>%
   tm_facets(by = "name")
 ```
 
-1.  Which country touches the most others?
+# Which country touches the most others? {#sec-touches-country}
 
-    How would we display (say) the ten countries that have the most borders with others? My first thought is to let {sf} to the hard work by joining the landmasses dataset onto itself (using st_touches) and see how many time a country is repeated in the resultant dataset.
+How would we display (say) the ten countries that have the most borders with others? My first thought is to let {sf} to the hard work by joining the landmasses dataset onto itself (using st_touches) and see how many time a country is repeated in the resultant dataset.
 
 ```{r label: which countries touch more others, message = FALSE, warning = FALSE}
 # note: this function takes a while
@@ -277,9 +331,9 @@ top_n_touches <- this_touches_that %>%
 
 ```
 
-1.  Which country is roundest?
+# Which country is roundest? {#sec-roundest-country}
 
-    This document describes a way of summarising \*\*boundary complexity\*\* as defined by the \[Polsby-Popper Test\](https://en.wikipedia.org/wiki/Polsby%E2%80%93Popper_test). The Polsby-Popper Test is a mathematical compactness measure of a shape developed to quantify the degree of gerrymandering of political districts. The test uses the length of the perimeter of a shape to the area of the shape and compares it against that of a circle.
+This document describes a way of summarising \*\*boundary complexity\*\* as defined by the \[Polsby-Popper Test\](https://en.wikipedia.org/wiki/Polsby%E2%80%93Popper_test). The Polsby-Popper Test is a mathematical compactness measure of a shape developed to quantify the degree of gerrymandering of political districts. The test uses the length of the perimeter of a shape to the area of the shape and compares it against that of a circle.
 
 When using the Polsby-Popper Test, a circle will have a score of 1 and any other (more "complex") geometric shape has a smaller ratio (tending towards zero). Because we are interested in complexity. We will analyse:
 
@@ -329,6 +383,8 @@ wlm <- world_landmasses %>%
 
 then plot the roundest in leaflet...
 
+note: here I've filtered the landmasses to be bigger than 1e10m2 to avoid relatively small ones.
+
 ```{r label: plot the roundest in leaflet, message = FALSE, warning = FALSE}
 
 world_map <- leaflet() %>%
@@ -353,7 +409,9 @@ world_map
 
 ```
 
-or plot the least round in leaflet...
+# Which country is roundest? {#sec-least-roundest-country}
+
+Plotting the least round is simply a case of reversing the ordering of the landmasses before filtering tro the top 10 and sending the results to leaflet to visualise
 
 ```{r label: plot the least round in leaflet}
 
@@ -365,7 +423,7 @@ world_map <- leaflet() %>%
                 ) %>%
   addMarkers(data =  wlm %>%
                filter(area > 1e10) %>%
-               arrange(desc(pp_score)) %>% # decreating roundess this time...
+               arrange(desc(pp_score)) %>% # decreasing roundess this time...
                head(10) %>%
                mutate(geometry = sf::st_centroid(sf::st_make_valid(geometry))),
         clusterOptions = markerClusterOptions(),

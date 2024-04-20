@@ -3,7 +3,7 @@ title: "Open data (part five): Some potential uses of Open Mapping Data"
 author: "Leo Kiernan"
 date: "2023-05-02"
 draft: true
-image: river-loadings.png
+image: allotments.png
 toc: true
 format: 
   html:
@@ -68,7 +68,7 @@ What is without doubt, is that there are time when crowd-sourcing and opendata c
 
 OS Zoomstack
 
-[Zoomstack](https://osdatahub.os.uk/downloads/open/OpenZoomstack) is another amazing opendata resource, this time provided and support by the Ordnance survey. It is part of a whole range of other [open data-sets provided by OS](https://osdatahub.os.uk/downloads/open). zommstack comes as Geopackage or vectorLayers and can be visualised in GIS (e.g. [QGIS](https://www.qgis.org/en/site/)using [open styling from GIT](https://github.com/OrdnanceSurvey/OS-Open-Zoomstack-Stylesheets), there's an excellent guide on [adding OS open Zoomstack to QGIS here](https://www.linkedin.com/pulse/add-os-open-zoomstack-geopackage-qgis-elaine-owen/)) it's worth noting that the [OS also provides many other ](https://www.ordnancesurvey.co.uk/business-government/products)data-sets (some paid) including MasterMap and AddressBasePremium. These layers decorate the base UIDs provided in the opendata data-sets with some extremely useful detail. Other mapping firms also sell layers that can help contextualise anything from where to locate a new shop to what kind of soil might be under your feet.
+[Zoomstack](https://osdatahub.os.uk/downloads/open/OpenZoomstack) is another amazing opendata resource, this time provided and support by the Ordnance survey. It is part of a whole range of other [open data-sets provided by OS](https://osdatahub.os.uk/downloads/open). zommstack comes as Geopackage or vectorLayers and can be visualised in GIS (e.g. [QGIS](https://www.qgis.org/en/site/)using [open styling from GIT](https://github.com/OrdnanceSurvey/OS-Open-Zoomstack-Stylesheets), there's an excellent guide on [adding OS open Zoomstack to QGIS here](https://www.linkedin.com/pulse/add-os-open-zoomstack-geopackage-qgis-elaine-owen/)) it's worth noting that the [OS also provides many other](https://www.ordnancesurvey.co.uk/business-government/products)data-sets (some paid) including MasterMap and AddressBasePremium. These layers decorate the base UIDs provided in the opendata data-sets with some extremely useful detail. Other mapping firms also sell layers that can help contextualise anything from where to locate a new shop to what kind of soil might be under your feet.
 
 ## How can OpenStreetMap / Zoomstack data help find leakage
 
@@ -107,7 +107,7 @@ So, to minimise leakage I might chose to target an area that has the largest amo
 For illustration lets pretend I'm tasked with reducing leakage in 'Anytown'. Anytown has been divided up into four equal-sized areas. I've only got enough resources to look for the location of leaks in one area and according to my computer, a water-balance (where consumption is deducted from total area in-flow) report:
 
 | Area      | Measured demand (l/s) | Estimated Consumption (l/s) | reported leakage (l/s) |
-|-----------------|-----------------|--------------------|-----------------|
+|-----------|-----------------------|-----------------------------|------------------------|
 | Anytown_1 | 1                     | 1                           | 0.0                    |
 | Anytown_2 | 2                     | 1                           | 1.0                    |
 | Anytown_3 | 2                     | 1                           | 1.0                    |
